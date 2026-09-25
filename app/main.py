@@ -11,6 +11,9 @@ import structlog
 from app.core.config import settings
 from app.core.logging import setup_logging, logger
 from app.api.v1.router import api_router
+from app.db.session import engine
+from app.db.base import Base
+import app.models  # Register all models with Base.metadata
 
 
 @asynccontextmanager
@@ -23,8 +26,17 @@ async def lifespan(app: FastAPI):
         env=settings.APP_ENV,
         debug=settings.DEBUG,
     )
+    # Ensure database tables exist
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("database_tables_verified")
+    except Exception as exc:
+        logger.error("database_connection_failed_on_startup", error=str(exc))
+
     yield
     # Shutdown
+    await engine.dispose()
     logger.info("app_shutdown", app_name=settings.APP_NAME)
 
 

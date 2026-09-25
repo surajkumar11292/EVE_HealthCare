@@ -21,6 +21,10 @@ wheels/
 .installed.cfg
 *.egg
 
+# Assignment PDF & Docs
+*.pdf
+EVE_SDE_Intern_Hiring_Assignment.pdf
+
 # Virtual Environments
 .env
 .venv
