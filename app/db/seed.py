@@ -1,6 +1,5 @@
 import asyncio
 from decimal import Decimal
-from passlib.context import CryptContext
 from sqlalchemy import select
 
 from app.db.session import AsyncSessionLocal, engine
@@ -9,9 +8,8 @@ from app.models.user import User, UserRole
 from app.models.centre import Centre
 from app.models.test import DiagnosticTest
 from app.models.centre_test import CentreTest
+from app.core.security import get_password_hash
 from app.core.logging import logger
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 async def seed_database() -> None:
@@ -30,14 +28,14 @@ async def seed_database() -> None:
             admin_user = User(
                 email="admin@evehealthcare.com",
                 full_name="EVE System Administrator",
-                hashed_password=pwd_context.hash("Admin@12345"),
+                hashed_password=get_password_hash("Admin@12345"),
                 role=UserRole.ADMIN,
                 is_active=True,
             )
             patient_user = User(
                 email="patient@evehealthcare.com",
                 full_name="John Doe",
-                hashed_password=pwd_context.hash("Patient@12345"),
+                hashed_password=get_password_hash("Patient@12345"),
                 role=UserRole.PATIENT,
                 is_active=True,
             )
