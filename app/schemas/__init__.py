@@ -18,6 +18,11 @@ from app.schemas.centre import (
     CentreResponse,
     CentreDetailResponse,
 )
+from app.schemas.booking import (
+    BookingCreateRequest,
+    BookingCancelRequest,
+    BookingResponse,
+)
 
 __all__ = [
     "UserSignUpRequest",
@@ -34,4 +39,7 @@ __all__ = [
     "CentreTestResponse",
     "CentreResponse",
     "CentreDetailResponse",
+    "BookingCreateRequest",
+    "BookingCancelRequest",
+    "BookingResponse",
 ]
