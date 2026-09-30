@@ -334,7 +334,7 @@ export default function AuthModal({ isOpen, onClose, intentMessage, onLoginSucce
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="e.g. John Doe"
+                  placeholder="e.g. Suraj Kumar"
                   className="form-input"
                 />
               </div>

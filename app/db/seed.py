@@ -22,25 +22,41 @@ async def seed_database() -> None:
         await conn.run_sync(Base.metadata.create_all)
 
     async with AsyncSessionLocal() as session:
-        # 1. Seed Users (Admin & Patient)
+        # 1. Seed Users (Admin & 3 Patients)
         existing_users = await session.execute(select(User))
         if not existing_users.scalars().first():
-            admin_user = User(
-                email="admin@evehealthcare.com",
-                full_name="EVE System Administrator",
-                hashed_password=get_password_hash("Admin@12345"),
-                role=UserRole.ADMIN,
-                is_active=True,
-            )
-            patient_user = User(
-                email="patient@evehealthcare.com",
-                full_name="John Doe",
-                hashed_password=get_password_hash("Patient@12345"),
-                role=UserRole.PATIENT,
-                is_active=True,
-            )
-            session.add_all([admin_user, patient_user])
-            logger.info("seed_users_created", count=2)
+            users_to_add = [
+                User(
+                    email="admin@evehealthcare.com",
+                    full_name="Dr. Rohan Mehra (Lab Administrator)",
+                    hashed_password=get_password_hash("Admin@123456"),
+                    role=UserRole.ADMIN,
+                    is_active=True,
+                ),
+                User(
+                    email="patient@evehealthcare.com",
+                    full_name="Suraj Kumar (Patient #1)",
+                    hashed_password=get_password_hash("Patient@123456"),
+                    role=UserRole.PATIENT,
+                    is_active=True,
+                ),
+                User(
+                    email="patient2@evehealthcare.com",
+                    full_name="Ananya Sharma (Patient #2)",
+                    hashed_password=get_password_hash("Patient@123456"),
+                    role=UserRole.PATIENT,
+                    is_active=True,
+                ),
+                User(
+                    email="patient3@evehealthcare.com",
+                    full_name="Rajesh Patel (Patient #3)",
+                    hashed_password=get_password_hash("Patient@123456"),
+                    role=UserRole.PATIENT,
+                    is_active=True,
+                ),
+            ]
+            session.add_all(users_to_add)
+            logger.info("seed_users_created", count=len(users_to_add))
 
         # 2. Seed Diagnostic Centres
         existing_centres = await session.execute(select(Centre))
