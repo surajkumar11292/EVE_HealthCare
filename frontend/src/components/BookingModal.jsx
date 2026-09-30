@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { X, Calendar, Clock, Lock, AlertCircle, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { X, Calendar, Clock, Lock, AlertCircle, ArrowRight } from 'lucide-react';
 
 export default function BookingModal({ isOpen, onClose, centre, centreTest, onBookingCreated }) {
   const { isAuthenticated, user } = useAuth();
 
-  // Helper to format ISO datetime-local string in local timezone
   const getDefaultDatetime = (daysAhead = 1, hour = 10) => {
     const d = new Date();
     d.setDate(d.getDate() + daysAhead);
@@ -36,10 +35,9 @@ export default function BookingModal({ isOpen, onClose, centre, centreTest, onBo
     setError(null);
 
     try {
-      // Convert datetime-local to ISO string with timezone
       const selectedDate = new Date(appointmentTime);
       if (selectedDate <= new Date()) {
-        throw new Error('Appointment date and time must be strictly in the future.');
+        throw new Error('Appointment date and time must be in the future.');
       }
 
       const payload = {
@@ -52,7 +50,7 @@ export default function BookingModal({ isOpen, onClose, centre, centreTest, onBo
       onBookingCreated(booking);
       onClose();
     } catch (err) {
-      setError(err.message || 'Failed to create booking.');
+      setError(err.message || 'Unable to schedule appointment. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -60,7 +58,7 @@ export default function BookingModal({ isOpen, onClose, centre, centreTest, onBo
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
         {/* Modal Header */}
         <div style={{
           padding: '1.25rem 1.5rem',
@@ -70,10 +68,12 @@ export default function BookingModal({ isOpen, onClose, centre, centreTest, onBo
           justifyContent: 'space-between',
         }}>
           <div>
-            <div className="kicker">// 02 APPOINTMENT SCHEDULER</div>
-            <h3 style={{ fontSize: '1.2rem', marginTop: '0.15rem' }}>
-              Book Diagnostic Appointment
-            </h3>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-main)' }}>
+              Schedule Appointment
+            </h2>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+              Confirm your diagnostic test details and timing
+            </p>
           </div>
           <button onClick={onClose} className="btn btn-ghost btn-sm" style={{ padding: '0.25rem' }}>
             <X size={16} />
@@ -89,17 +89,17 @@ export default function BookingModal({ isOpen, onClose, centre, centreTest, onBo
               borderRadius: 'var(--radius-md)',
               color: 'var(--status-error-text)',
               fontSize: '0.8125rem',
-              marginBottom: '1rem',
+              marginBottom: '1.25rem',
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
             }}>
-              <AlertCircle size={14} />
+              <AlertCircle size={15} />
               <span>{error}</span>
             </div>
           )}
 
-          {/* Test & Lab Summary Card */}
+          {/* Test & Lab Overview */}
           <div style={{
             padding: '1rem',
             backgroundColor: 'var(--bg-subtle)',
@@ -107,131 +107,91 @@ export default function BookingModal({ isOpen, onClose, centre, centreTest, onBo
             border: '1px solid var(--border-light)',
             marginBottom: '1.25rem',
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <span className="pill-badge neutral" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', marginBottom: '0.25rem' }}>
-                  {centreTest.test?.category || 'Diagnostic'}
+                <span className="pill-badge neutral" style={{ fontSize: '0.65rem', marginBottom: '0.35rem' }}>
+                  {centreTest.test?.category || 'General'}
                 </span>
-                <div style={{ fontWeight: 700, fontSize: '1rem' }}>
+                <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--text-main)' }}>
                   {centreTest.test?.name}
                 </div>
-                <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
                   {centre.name} · {centre.location}
                 </div>
               </div>
 
-              {/* Price Snapshot Display */}
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-                  IMMUTABLE PRICE
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  Price
                 </div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)' }}>
                   ₹{parseFloat(centreTest.price).toFixed(2)}
                 </div>
               </div>
             </div>
-
-            {/* Explanatory Callout */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              fontSize: '0.72rem',
-              color: 'var(--text-muted)',
-              fontFamily: 'var(--font-mono)',
-              borderTop: '1px dashed var(--border-subtle)',
-              paddingTop: '0.5rem',
-              marginTop: '0.5rem',
-            }}>
-              <Lock size={11} />
-              <span>Price is snapshotted into bookings.amount at booking creation.</span>
-            </div>
           </div>
 
-          {/* Appointment Time Selection */}
+          {/* Appointment Time */}
           <div className="form-group">
-            <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Appointment Date & Time</span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Future time required</span>
-            </label>
+            <label className="form-label">Select Date & Time</label>
             <input
               type="datetime-local"
               required
               value={appointmentTime}
               onChange={(e) => setAppointmentTime(e.target.value)}
               className="form-input"
-              style={{ fontFamily: 'var(--font-mono)' }}
             />
 
-            {/* Quick Preset Buttons */}
+            {/* Quick Presets */}
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
               <button
                 type="button"
                 onClick={() => setAppointmentTime(getDefaultDatetime(1, 10))}
                 className="btn btn-ghost btn-sm"
-                style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}
+                style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
               >
-                Tomorrow 10:00 AM
+                Tomorrow 10 AM
               </button>
               <button
                 type="button"
                 onClick={() => setAppointmentTime(getDefaultDatetime(2, 9))}
                 className="btn btn-ghost btn-sm"
-                style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}
+                style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
               >
-                In 2 Days 09:00 AM
+                In 2 Days 9 AM
               </button>
               <button
                 type="button"
                 onClick={() => setAppointmentTime(getDefaultDatetime(5, 11))}
                 className="btn btn-ghost btn-sm"
-                style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}
+                style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
               >
-                In 5 Days 11:00 AM
+                In 5 Days 11 AM
               </button>
             </div>
           </div>
 
           {/* Clinical Notes */}
-          <div className="form-group">
-            <label className="form-label">Clinical Notes / Fasting Requirements (Optional)</label>
+          <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+            <label className="form-label">Notes for Laboratory (Optional)</label>
             <textarea
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g. 10 hours overnight fasting completed; routine checkup"
+              placeholder="e.g. 10 hours overnight fasting completed"
               className="form-textarea"
               style={{ fontSize: '0.8125rem' }}
             />
           </div>
 
-          {/* Patient Identity Confirmation */}
-          <div style={{
-            fontSize: '0.75rem',
-            padding: '0.65rem 0.85rem',
-            backgroundColor: 'var(--bg-canvas)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-light)',
-            marginBottom: '1.25rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}>
-            <span style={{ color: 'var(--text-muted)' }}>PATIENT:</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-              {user ? `${user.full_name} (${user.email})` : 'Unauthenticated Session'}
-            </span>
-          </div>
-
-          {/* Action Button */}
           <button
             type="submit"
             disabled={loading}
             className="btn btn-ink"
-            style={{ width: '100%' }}
+            style={{ width: '100%', padding: '0.7rem' }}
           >
-            {loading ? 'Creating Immutable Booking...' : 'Confirm Appointment'}
-            <ArrowRight size={14} />
+            {loading ? 'Booking Appointment...' : 'Confirm Appointment'}
+            <span className="arrow-gold">→</span>
           </button>
         </form>
       </div>

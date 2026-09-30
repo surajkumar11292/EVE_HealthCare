@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, Clock, CreditCard, XCircle, CheckCircle, RefreshCw, AlertCircle, ArrowRight, Shield, Copy, Check } from 'lucide-react';
+import { Calendar, CreditCard, XCircle, RefreshCw, AlertCircle, Copy, Check } from 'lucide-react';
 
-export default function BookingsView({ onPayBooking, onOpenWebhook, refreshTrigger }) {
+export default function BookingsView({ onPayBooking, refreshTrigger }) {
   const { user, isAdmin } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,7 +19,7 @@ export default function BookingsView({ onPayBooking, onOpenWebhook, refreshTrigg
       const data = await api.getBookings({ size: 50 });
       setBookings(data.items || []);
     } catch (err) {
-      setError(err.message || 'Failed to fetch bookings ledger.');
+      setError(err.message || 'Unable to load appointment records.');
     } finally {
       setLoading(false);
     }
@@ -30,7 +30,7 @@ export default function BookingsView({ onPayBooking, onOpenWebhook, refreshTrigg
   }, [refreshTrigger]);
 
   const handleCancel = async (bookingId) => {
-    if (!window.confirm('Are you sure you want to cancel this diagnostic booking?')) {
+    if (!window.confirm('Are you sure you want to cancel this appointment?')) {
       return;
     }
     setCancellingId(bookingId);
@@ -38,7 +38,7 @@ export default function BookingsView({ onPayBooking, onOpenWebhook, refreshTrigg
       await api.cancelBooking(bookingId);
       await fetchBookings();
     } catch (err) {
-      alert(err.message || 'Failed to cancel booking.');
+      alert(err.message || 'Failed to cancel appointment.');
     } finally {
       setCancellingId(null);
     }
@@ -50,7 +50,13 @@ export default function BookingsView({ onPayBooking, onOpenWebhook, refreshTrigg
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const statuses = ['ALL', 'PENDING', 'CONFIRMED', 'CANCELLED', 'FAILED'];
+  const statusOptions = [
+    { id: 'ALL', label: 'All Appointments' },
+    { id: 'PENDING', label: 'Pending Payment' },
+    { id: 'CONFIRMED', label: 'Confirmed' },
+    { id: 'CANCELLED', label: 'Cancelled' },
+    { id: 'FAILED', label: 'Failed' },
+  ];
 
   const filteredBookings = bookings.filter((b) => {
     if (statusFilter === 'ALL') return true;
@@ -63,28 +69,28 @@ export default function BookingsView({ onPayBooking, onOpenWebhook, refreshTrigg
         return (
           <span className="pill-badge success">
             <span className="dot green"></span>
-            CONFIRMED
+            Confirmed
           </span>
         );
       case 'PENDING':
         return (
           <span className="pill-badge warning">
-            <span className="dot amber pulse"></span>
-            PENDING
+            <span className="dot amber"></span>
+            Pending Payment
           </span>
         );
       case 'CANCELLED':
         return (
           <span className="pill-badge error">
             <span className="dot rose"></span>
-            CANCELLED
+            Cancelled
           </span>
         );
       case 'FAILED':
         return (
           <span className="pill-badge error">
             <span className="dot rose"></span>
-            FAILED
+            Payment Failed
           </span>
         );
       default:
@@ -100,6 +106,7 @@ export default function BookingsView({ onPayBooking, onOpenWebhook, refreshTrigg
     try {
       const d = new Date(isoString);
       return d.toLocaleDateString('en-US', {
+        weekday: 'short',
         month: 'short',
         day: 'numeric',
         year: 'numeric',
@@ -120,21 +127,16 @@ export default function BookingsView({ onPayBooking, onOpenWebhook, refreshTrigg
         justifyContent: 'space-between',
         flexWrap: 'wrap',
         gap: '1rem',
-        marginBottom: '1.5rem',
+        marginBottom: '2rem',
       }}>
         <div>
-          <div className="kicker">// 02 STATE MACHINE & AUDIT LEDGER</div>
-          <h2 style={{ fontSize: '1.5rem', marginTop: '0.2rem' }}>
-            Diagnostic Bookings Ledger
-          </h2>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-            {isAdmin ? (
-              <span style={{ color: 'var(--status-warning-text)', fontWeight: 500 }}>
-                🛡️ AUDIT MODE: Viewing all bookings across all patients in the system.
-              </span>
-            ) : (
-              'Viewing your personal appointment records with immutable price snapshots.'
-            )}
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text-main)' }}>
+            {isAdmin ? 'All Patient Appointments' : 'My Appointments'}
+          </h1>
+          <p style={{ fontSize: '0.9375rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+            {isAdmin
+              ? 'Administrator overview of all diagnostic bookings scheduled across the platform.'
+              : 'Review your upcoming diagnostic tests, check appointment times, and complete payment.'}
           </p>
         </div>
 
@@ -144,61 +146,52 @@ export default function BookingsView({ onPayBooking, onOpenWebhook, refreshTrigg
             disabled={loading}
             className="btn btn-ghost btn-sm"
           >
-            <RefreshCw size={12} className={loading ? 'pulse' : ''} />
-            Refresh Ledger
+            <RefreshCw size={13} className={loading ? 'pulse' : ''} />
+            Refresh
           </button>
         </div>
       </div>
 
-      {/* Filter Chips Bar */}
-      <div className="card" style={{ padding: '0.75rem 1.25rem', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginRight: '0.5rem' }}>
-            STATUS FILTER:
-          </span>
-          {statuses.map((st) => (
-            <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
-              style={{
-                padding: '0.2rem 0.65rem',
-                fontSize: '0.75rem',
-                fontFamily: 'var(--font-mono)',
-                borderRadius: 'var(--radius-full)',
-                border: statusFilter === st ? '1px solid var(--border-strong)' : '1px solid var(--border-light)',
-                backgroundColor: statusFilter === st ? 'var(--bg-dark)' : 'transparent',
-                color: statusFilter === st ? 'var(--text-inverse)' : 'var(--text-secondary)',
-                cursor: 'pointer',
-                transition: 'all 0.1s ease',
-              }}
-            >
-              {st}
-            </button>
-          ))}
+      {/* Filter Tabs */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <div className="impeccable-pill-bar">
+          {statusOptions.map((opt) => {
+            const isSelected = statusFilter === opt.id;
+            return (
+              <button
+                key={opt.id}
+                onClick={() => setStatusFilter(opt.id)}
+                className={`impeccable-pill-btn ${isSelected ? 'active' : ''}`}
+              >
+                {isSelected && <span className="dot green"></span>}
+                {opt.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Ledger Table */}
+      {/* Bookings Content */}
       {loading ? (
-        <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
+        <div className="card" style={{ padding: '3.5rem', textAlign: 'center' }}>
           <RefreshCw size={24} className="pulse" style={{ margin: '0 auto 0.75rem', color: 'var(--text-muted)' }} />
-          <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Loading bookings from database...</div>
+          <div style={{ fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>Loading appointment details...</div>
         </div>
       ) : error ? (
         <div className="card" style={{ padding: '2rem', textAlign: 'center', borderColor: 'var(--status-error-border)' }}>
           <AlertCircle size={24} style={{ margin: '0 auto 0.5rem', color: 'var(--status-error-text)' }} />
-          <div style={{ color: 'var(--status-error-text)', fontSize: '0.875rem' }}>{error}</div>
+          <div style={{ color: 'var(--status-error-text)', fontSize: '0.9375rem' }}>{error}</div>
           <button onClick={fetchBookings} className="btn btn-ghost btn-sm" style={{ marginTop: '1rem' }}>
-            Retry Request
+            Try Again
           </button>
         </div>
       ) : filteredBookings.length === 0 ? (
         <div className="card" style={{ padding: '3.5rem', textAlign: 'center' }}>
-          <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-            No bookings found matching filter: {statusFilter}.
+          <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.35rem' }}>
+            No appointments found
           </div>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-            Head over to the Catalog Matrix to schedule an appointment.
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+            There are no appointments with status "{statusOptions.find(o => o.id === statusFilter)?.label}".
           </p>
         </div>
       ) : (
@@ -206,12 +199,12 @@ export default function BookingsView({ onPayBooking, onOpenWebhook, refreshTrigg
           <table>
             <thead>
               <tr>
-                <th>Booking Reference</th>
-                <th>Diagnostic Test</th>
-                <th>Diagnostic Centre</th>
-                <th>Appointment Schedule</th>
-                <th>Amount (Frozen)</th>
-                <th>State Status</th>
+                <th>Booking ID</th>
+                <th>Test Details</th>
+                <th>Diagnostic Lab</th>
+                <th>Appointment Date & Time</th>
+                <th>Price</th>
+                <th>Status</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
@@ -221,20 +214,20 @@ export default function BookingsView({ onPayBooking, onOpenWebhook, refreshTrigg
                   {/* Reference ID */}
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', fontWeight: 600 }}>
-                        {b.id.substring(0, 8)}...
+                      <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                        #{b.id.substring(0, 8)}
                       </span>
                       <button
                         onClick={() => copyToClipboard(b.id, b.id)}
                         className="btn btn-ghost btn-sm"
-                        style={{ padding: '0.15rem 0.3rem', height: '20px' }}
-                        title="Copy full UUID"
+                        style={{ padding: '0.15rem 0.35rem', height: '22px' }}
+                        title="Copy full Booking Reference"
                       >
-                        {copiedId === b.id ? <Check size={11} color="var(--status-success-text)" /> : <Copy size={11} />}
+                        {copiedId === b.id ? <Check size={12} color="var(--status-success-dot)" /> : <Copy size={12} />}
                       </button>
                     </div>
                     {isAdmin && b.patient_name && (
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                         Patient: {b.patient_name}
                       </div>
                     )}
@@ -242,37 +235,34 @@ export default function BookingsView({ onPayBooking, onOpenWebhook, refreshTrigg
 
                   {/* Test */}
                   <td>
-                    <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>
-                      {b.test_name || 'Diagnostic Test'}
+                    <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                      {b.test_name || 'Diagnostic Evaluation'}
                     </div>
                     {b.notes && (
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '0.15rem' }}>
-                        Note: {b.notes}
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                        Notes: {b.notes}
                       </div>
                     )}
                   </td>
 
                   {/* Centre */}
                   <td>
-                    <div style={{ fontSize: '0.85rem' }}>{b.centre_name || 'Medical Hub'}</div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{b.centre_location}</div>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 500 }}>{b.centre_name || 'Partner Lab'}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{b.centre_location}</div>
                   </td>
 
                   {/* Appointment Time */}
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8125rem' }}>
-                      <Calendar size={13} style={{ color: 'var(--text-muted)' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8125rem' }}>
+                      <Calendar size={14} style={{ color: 'var(--text-muted)' }} />
                       <span>{formatDateTime(b.appointment_time)}</span>
                     </div>
                   </td>
 
-                  {/* Amount Snapshot */}
+                  {/* Amount */}
                   <td>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '0.9rem' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-main)' }}>
                       ₹{parseFloat(b.amount).toFixed(2)}
-                    </div>
-                    <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                      AUDIT FROZEN
                     </div>
                   </td>
 
@@ -289,44 +279,41 @@ export default function BookingsView({ onPayBooking, onOpenWebhook, refreshTrigg
                           <button
                             onClick={() => onPayBooking && onPayBooking(b)}
                             className="btn btn-ink btn-sm"
-                            style={{ fontSize: '0.75rem', padding: '0.3rem 0.65rem' }}
                           >
-                            <CreditCard size={12} />
+                            <CreditCard size={13} />
                             Pay Now
                           </button>
                           <button
                             onClick={() => handleCancel(b.id)}
                             disabled={cancellingId === b.id}
-                            className="btn btn-danger btn-sm"
-                            style={{ fontSize: '0.75rem', padding: '0.3rem 0.5rem' }}
-                            title="Cancel appointment (State Machine: PENDING -> CANCELLED)"
+                            className="btn btn-ghost btn-sm"
+                            style={{ color: 'var(--status-error-text)' }}
                           >
-                            <XCircle size={12} />
+                            <XCircle size={13} />
                             Cancel
                           </button>
                         </>
                       )}
 
                       {b.status === 'CONFIRMED' && (
-                        <>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--status-success-text)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-                            ✓ PAID & CONFIRMED
-                          </span>
-                          <button
-                            onClick={() => onOpenWebhook && onOpenWebhook(b)}
-                            className="btn btn-ghost btn-sm"
-                            style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem' }}
-                            title="Open Webhook Sandbox with this Booking ID"
-                          >
-                            Test Webhook
-                          </button>
-                        </>
+                        <span style={{ fontSize: '0.8125rem', color: 'var(--status-success-text)', fontWeight: 600 }}>
+                          Ready for Visit
+                        </span>
                       )}
 
-                      {(b.status === 'CANCELLED' || b.status === 'FAILED') && (
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-faint)', fontStyle: 'italic' }}>
-                          Terminal State
+                      {b.status === 'CANCELLED' && (
+                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                          Cancelled
                         </span>
+                      )}
+
+                      {b.status === 'FAILED' && (
+                        <button
+                          onClick={() => onPayBooking && onPayBooking(b)}
+                          className="btn btn-ghost btn-sm"
+                        >
+                          Retry Payment
+                        </button>
                       )}
                     </div>
                   </td>

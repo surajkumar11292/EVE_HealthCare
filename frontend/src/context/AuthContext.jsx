@@ -67,12 +67,13 @@ export function AuthProvider({ children }) {
     setError(null);
     try {
       if (role === 'ADMIN') {
-        await login('admin@evehealthcare.com', 'Admin@123456');
+        return await login('admin@evehealthcare.com', 'Admin@123456');
       } else {
-        await login('patient@evehealthcare.com', 'Patient@123456');
+        return await login('patient@evehealthcare.com', 'Patient@123456');
       }
     } catch (err) {
       console.error('Failed to switch persona:', err);
+      throw err;
     } finally {
       setLoading(false);
     }

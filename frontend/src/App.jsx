@@ -1,29 +1,45 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
-import PersonaBanner from './components/PersonaBanner';
 import AuthModal from './components/AuthModal';
 import CatalogView from './components/CatalogView';
 import BookingsView from './components/BookingsView';
 import BookingModal from './components/BookingModal';
 import PaymentsView from './components/PaymentsView';
-import WebhookSandbox from './components/WebhookSandbox';
-import TelemetryView from './components/TelemetryView';
+import DeveloperSandbox from './components/DeveloperSandbox';
 
 function MainContent() {
   const [activeTab, setActiveTab] = useState('catalog');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedBookingContext, setSelectedBookingContext] = useState(null);
+  const [pendingBookingContext, setPendingBookingContext] = useState(null);
+  const [authIntentMessage, setAuthIntentMessage] = useState(null);
   const [selectedPayBooking, setSelectedPayBooking] = useState(null);
-  const [selectedWebhookBooking, setSelectedWebhookBooking] = useState(null);
   const [refreshBookingsTrigger, setRefreshBookingsTrigger] = useState(0);
 
   const { user, isAuthenticated, isAdmin } = useAuth();
 
+  // Workflow fix: if unauthenticated, intercept and pop out small login modal
   const handleBookTestClick = (centre, centreTest) => {
+    if (!isAuthenticated) {
+      setPendingBookingContext({ centre, centreTest });
+      setAuthIntentMessage(`Please sign in to book your diagnostic appointment at ${centre.name}.`);
+      setIsAuthModalOpen(true);
+      return;
+    }
     setSelectedBookingContext({ centre, centreTest });
     setIsBookingModalOpen(true);
+  };
+
+  // When login completes (via 1-click or credentials), resume booking if pending
+  const handleLoginSuccess = () => {
+    if (pendingBookingContext) {
+      setSelectedBookingContext(pendingBookingContext);
+      setPendingBookingContext(null);
+      setAuthIntentMessage(null);
+      setIsBookingModalOpen(true);
+    }
   };
 
   const handleBookingCreated = (newBooking) => {
@@ -36,20 +52,20 @@ function MainContent() {
     setActiveTab('payments');
   };
 
-  const handleOpenWebhook = (booking) => {
-    setSelectedWebhookBooking(booking);
-    setActiveTab('webhooks');
-  };
-
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-canvas)' }}>
-      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-page)' }}>
+      {/* Top Navigation with Impeccable styling */}
+      <Navbar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onOpenAuthModal={() => {
+          setAuthIntentMessage(null);
+          setIsAuthModalOpen(true);
+        }}
+      />
 
-      <main style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
-        {/* Persona & Identity Context Banner */}
-        <PersonaBanner onOpenAuthModal={() => setIsAuthModalOpen(true)} />
-
-        {/* Dynamic Tab Views */}
+      {/* Main Page Content */}
+      <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
         {activeTab === 'catalog' && (
           <CatalogView onBookTest={handleBookTestClick} />
         )}
@@ -57,7 +73,6 @@ function MainContent() {
         {activeTab === 'bookings' && (
           <BookingsView
             onPayBooking={handlePayBooking}
-            onOpenWebhook={handleOpenWebhook}
             refreshTrigger={refreshBookingsTrigger}
           />
         )}
@@ -65,38 +80,40 @@ function MainContent() {
         {activeTab === 'payments' && (
           <PaymentsView
             initialBooking={selectedPayBooking}
-            onPaymentSuccess={(result) => {
+            onPaymentSuccess={() => {
               setRefreshBookingsTrigger(Date.now());
             }}
           />
         )}
 
-        {activeTab === 'webhooks' && (
-          <WebhookSandbox
-            initialBooking={selectedWebhookBooking}
-          />
-        )}
-
-        {activeTab === 'telemetry' && (
-          <TelemetryView />
+        {activeTab === 'developer' && (
+          <DeveloperSandbox />
         )}
       </main>
 
-      {/* Appointment Scheduling Modal */}
+      {/* Schedule Appointment Modal */}
       {selectedBookingContext && (
         <BookingModal
           isOpen={isBookingModalOpen}
-          onClose={() => setIsBookingModalOpen(false)}
+          onClose={() => {
+            setIsBookingModalOpen(false);
+            setSelectedBookingContext(null);
+          }}
           centre={selectedBookingContext.centre}
           centreTest={selectedBookingContext.centreTest}
           onBookingCreated={handleBookingCreated}
         />
       )}
 
-      {/* Manual Login / Signup Modal */}
+      {/* Small Popout Sign In Modal */}
       <AuthModal
         isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
+        onClose={() => {
+          setIsAuthModalOpen(false);
+          setAuthIntentMessage(null);
+        }}
+        intentMessage={authIntentMessage}
+        onLoginSuccess={handleLoginSuccess}
       />
     </div>
   );

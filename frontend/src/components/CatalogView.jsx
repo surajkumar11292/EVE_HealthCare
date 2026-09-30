@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import AddCentreModal from './AddCentreModal';
-import { Search, MapPin, Phone, Plus, RefreshCw, Stethoscope, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Search, MapPin, Phone, Plus, RefreshCw, Calendar, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export default function CatalogView({ onBookTest }) {
   const { isAdmin } = useAuth();
@@ -22,7 +22,6 @@ export default function CatalogView({ onBookTest }) {
       const centreList = data.items || [];
       setCentres(centreList);
 
-      // Fetch detailed test catalog for each centre
       const detailsMap = {};
       await Promise.all(
         centreList.map(async (c) => {
@@ -37,7 +36,7 @@ export default function CatalogView({ onBookTest }) {
       );
       setCentreDetails(detailsMap);
     } catch (err) {
-      setError(err.message || 'Failed to load diagnostic catalog.');
+      setError(err.message || 'Unable to load diagnostic catalog. Please check your network.');
     } finally {
       setLoading(false);
     }
@@ -49,7 +48,6 @@ export default function CatalogView({ onBookTest }) {
 
   const cities = ['ALL', 'Bangalore', 'Mumbai', 'Delhi'];
 
-  // Filter centres and tests
   const filteredCentres = centres.filter((centre) => {
     const matchesCity =
       selectedCity === 'ALL' ||
@@ -71,22 +69,21 @@ export default function CatalogView({ onBookTest }) {
 
   return (
     <div>
-      {/* Catalog Header & Controls */}
+      {/* Page Header */}
       <div style={{
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
         gap: '1rem',
-        marginBottom: '1.5rem',
+        marginBottom: '2rem',
       }}>
         <div>
-          <div className="kicker">// 01 DIAGNOSTIC CATALOG MATRIX</div>
-          <h2 style={{ fontSize: '1.5rem', marginTop: '0.2rem' }}>
-            Diagnostic Centres & Test Offerings
-          </h2>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-            Explore verified pathology labs and imaging centres with transparent, immutable price snapshotting.
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text-main)' }}>
+            Find Diagnostic Tests
+          </h1>
+          <p style={{ fontSize: '0.9375rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+            Browse accredited pathology labs, compare checkup packages, and book instant appointments.
           </p>
         </div>
 
@@ -95,9 +92,8 @@ export default function CatalogView({ onBookTest }) {
             onClick={fetchCentres}
             disabled={loading}
             className="btn btn-ghost btn-sm"
-            title="Refresh Catalog (Verifies Redis Cache)"
           >
-            <RefreshCw size={12} className={loading ? 'pulse' : ''} />
+            <RefreshCw size={13} className={loading ? 'pulse' : ''} />
             Refresh
           </button>
 
@@ -107,81 +103,79 @@ export default function CatalogView({ onBookTest }) {
               className="btn btn-ink btn-sm"
             >
               <Plus size={14} />
-              Onboard Centre
+              Add Diagnostic Lab
             </button>
           )}
         </div>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="card" style={{ padding: '1rem 1.25rem', marginBottom: '1.5rem' }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '1rem',
-        }}>
-          {/* City Chips */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginRight: '0.5rem' }}>
-              CITY FILTER:
-            </span>
-            {cities.map((city) => (
+      {/* Filter and Search Bar */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        padding: '0.75rem 1rem',
+        backgroundColor: 'var(--bg-surface)',
+        border: '1px solid var(--border-light)',
+        borderRadius: 'var(--radius-lg)',
+        boxShadow: 'var(--shadow-xs)',
+        marginBottom: '2rem',
+      }}>
+        {/* City Filter Pills */}
+        <div className="impeccable-pill-bar">
+          {cities.map((city) => {
+            const isSelected = selectedCity === city;
+            return (
               <button
                 key={city}
                 onClick={() => setSelectedCity(city)}
-                style={{
-                  padding: '0.25rem 0.65rem',
-                  fontSize: '0.75rem',
-                  fontFamily: 'var(--font-mono)',
-                  borderRadius: 'var(--radius-full)',
-                  border: selectedCity === city ? '1px solid var(--border-strong)' : '1px solid var(--border-light)',
-                  backgroundColor: selectedCity === city ? 'var(--bg-dark)' : 'transparent',
-                  color: selectedCity === city ? 'var(--text-inverse)' : 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  transition: 'all 0.1s ease',
-                }}
+                className={`impeccable-pill-btn ${isSelected ? 'active' : ''}`}
               >
+                {isSelected && <span className="dot green"></span>}
                 {city === 'ALL' ? 'All Cities' : city}
               </button>
-            ))}
-          </div>
+            );
+          })}
+        </div>
 
-          {/* Search Input */}
-          <div style={{ position: 'relative', width: '280px' }}>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search centres or tests..."
-              className="form-input"
-              style={{ paddingLeft: '2rem', height: '34px', fontSize: '0.8125rem' }}
-            />
-            <Search size={14} style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-faint)' }} />
-          </div>
+        {/* Search Input */}
+        <div style={{ position: 'relative', width: '320px' }}>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search test, package, or lab..."
+            className="form-input"
+            style={{ paddingLeft: '2.1rem', height: '36px', fontSize: '0.875rem' }}
+          />
+          <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-faint)' }} />
         </div>
       </div>
 
-      {/* Content Area */}
+      {/* Main Catalog Content */}
       {loading ? (
-        <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
+        <div className="card" style={{ padding: '3.5rem', textAlign: 'center' }}>
           <RefreshCw size={24} className="pulse" style={{ margin: '0 auto 0.75rem', color: 'var(--text-muted)' }} />
-          <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Querying diagnostic centres and Redis cache...</div>
+          <div style={{ fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>Loading diagnostic centres and test offerings...</div>
         </div>
       ) : error ? (
         <div className="card" style={{ padding: '2rem', textAlign: 'center', borderColor: 'var(--status-error-border)' }}>
           <AlertCircle size={24} style={{ margin: '0 auto 0.5rem', color: 'var(--status-error-text)' }} />
-          <div style={{ color: 'var(--status-error-text)', fontSize: '0.875rem' }}>{error}</div>
+          <div style={{ color: 'var(--status-error-text)', fontSize: '0.9375rem' }}>{error}</div>
           <button onClick={fetchCentres} className="btn btn-ghost btn-sm" style={{ marginTop: '1rem' }}>
-            Retry Request
+            Try Again
           </button>
         </div>
       ) : filteredCentres.length === 0 ? (
-        <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
-          <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-            No diagnostic centres found matching your filter criteria.
+        <div className="card" style={{ padding: '3.5rem', textAlign: 'center' }}>
+          <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.35rem' }}>
+            No diagnostic labs found
           </div>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+            We couldn't find any laboratories matching your search in {selectedCity === 'ALL' ? 'any city' : selectedCity}.
+          </p>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '1.5rem' }}>
@@ -190,111 +184,109 @@ export default function CatalogView({ onBookTest }) {
 
             return (
               <div key={centre.id} className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                {/* Centre Header */}
+                {/* Lab Header */}
                 <div style={{
                   paddingBottom: '1rem',
                   borderBottom: '1px solid var(--border-light)',
-                  marginBottom: '1rem',
+                  marginBottom: '1.25rem',
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span className="pill-badge success">
                       <span className="dot green"></span>
-                      ACTIVE
+                      Verified Partner Lab
                     </span>
-                    <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-                      {tests.length} TESTS OFFERED
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {tests.length} tests available
                     </span>
                   </div>
 
-                  <h3 style={{ fontSize: '1.15rem', marginBottom: '0.4rem' }}>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '0.35rem' }}>
                     {centre.name}
                   </h3>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <MapPin size={13} style={{ color: 'var(--text-muted)' }} />
+                      <MapPin size={14} style={{ color: 'var(--text-muted)' }} />
                       <span>{centre.location}</span>
                     </div>
                     {centre.contact_number && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <Phone size={13} style={{ color: 'var(--text-muted)' }} />
-                        <span style={{ fontFamily: 'var(--font-mono)' }}>{centre.contact_number}</span>
+                        <Phone size={14} style={{ color: 'var(--text-muted)' }} />
+                        <span>{centre.contact_number}</span>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Tests Offerings List */}
+                {/* Tests List */}
                 <div style={{ flex: 1 }}>
                   <div style={{
-                    fontSize: '0.7rem',
-                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
                     color: 'var(--text-muted)',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    marginBottom: '0.65rem',
+                    letterSpacing: '0.04em',
+                    marginBottom: '0.75rem',
                   }}>
-                    AVAILABLE DIAGNOSTIC TESTS:
+                    Available Tests & Packages
                   </div>
 
                   {tests.length === 0 ? (
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '0.75rem 0' }}>
-                      No diagnostic tests linked to this centre yet.
+                    <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', padding: '1rem 0', textAlign: 'center' }}>
+                      No tests currently published for this location.
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                       {tests.map((ct) => (
                         <div
                           key={ct.id}
                           style={{
-                            padding: '0.65rem 0.85rem',
+                            padding: '0.85rem 1rem',
                             border: '1px solid var(--border-light)',
                             borderRadius: 'var(--radius-md)',
                             backgroundColor: 'var(--bg-subtle)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            gap: '0.75rem',
+                            gap: '1rem',
+                            transition: 'border-color 0.15s ease',
                           }}
                         >
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.15rem' }}>
-                              <span style={{ fontWeight: 600, fontSize: '0.8125rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                              <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-main)' }}>
                                 {ct.test?.name || 'Diagnostic Test'}
                               </span>
                               <span style={{
-                                fontSize: '0.65rem',
-                                padding: '0.1rem 0.35rem',
-                                borderRadius: '4px',
-                                backgroundColor: '#E4E4E7',
-                                color: '#3F3F46',
-                                fontFamily: 'var(--font-mono)',
+                                fontSize: '0.7rem',
+                                padding: '0.1rem 0.45rem',
+                                borderRadius: 'var(--radius-full)',
+                                backgroundColor: '#E5E7EB',
+                                color: '#374151',
+                                fontWeight: 500,
                               }}>
-                                {ct.test?.category || 'General'}
+                                {ct.test?.category || 'Routine'}
                               </span>
                             </div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                              {ct.test?.description || 'Routine diagnostic laboratory evaluation'}
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                              {ct.test?.description || 'Laboratory diagnostic evaluation with digital report.'}
                             </div>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{
-                              textAlign: 'right',
-                              fontFamily: 'var(--font-mono)',
-                              fontWeight: 700,
-                              fontSize: '0.9rem',
-                            }}>
-                              ₹{parseFloat(ct.price).toFixed(2)}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-main)' }}>
+                                ₹{parseFloat(ct.price).toFixed(2)}
+                              </div>
                             </div>
 
                             <button
                               onClick={() => onBookTest && onBookTest(centre, ct)}
                               className="btn btn-ink btn-sm"
-                              style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                              style={{ whiteSpace: 'nowrap' }}
                             >
                               Book Test
-                              <ArrowRight size={12} />
+                              <span className="arrow-gold">→</span>
                             </button>
                           </div>
                         </div>
@@ -308,11 +300,11 @@ export default function CatalogView({ onBookTest }) {
         </div>
       )}
 
-      {/* Admin Centre Onboarding Modal */}
+      {/* Admin Add Centre Modal */}
       <AddCentreModal
         isOpen={isAddCentreOpen}
         onClose={() => setIsAddCentreOpen(false)}
-        onCentreCreated={(newCentre) => {
+        onCentreCreated={() => {
           fetchCentres();
         }}
       />
