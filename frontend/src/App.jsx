@@ -3,11 +3,19 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import PersonaBanner from './components/PersonaBanner';
 import AuthModal from './components/AuthModal';
+import CatalogView from './components/CatalogView';
 
 function MainContent() {
   const [activeTab, setActiveTab] = useState('catalog');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [selectedBookingContext, setSelectedBookingContext] = useState(null);
   const { user, isAuthenticated, isAdmin } = useAuth();
+
+  const handleBookTestClick = (centre, centreTest) => {
+    setSelectedBookingContext({ centre, centreTest });
+    // In Phase 4 this opens the booking modal; for now switch tab or alert
+    setActiveTab('bookings');
+  };
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-canvas)' }}>
@@ -17,41 +25,38 @@ function MainContent() {
         {/* Persona & Identity Context Banner */}
         <PersonaBanner onOpenAuthModal={() => setIsAuthModalOpen(true)} />
 
-        {/* Phase 2 Verification Status Card */}
-        <div className="card" style={{ padding: '2.5rem', textAlign: 'center', backgroundColor: '#FFFFFF' }}>
-          <div className="kicker" style={{ marginBottom: '0.5rem' }}>// AUTHENTICATION & ROLE-BASED ACCESS CONTROL</div>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '0.75rem' }}>
-            {isAuthenticated ? `Welcome back, ${user.full_name}` : 'Authentication Engine Ready'}
-          </h2>
-          <p style={{
-            color: 'var(--text-secondary)',
-            maxWidth: '650px',
-            margin: '0 auto 1.5rem',
-            fontSize: '0.875rem',
-            lineHeight: 1.6,
-          }}>
-            Your session is authenticated via JWT tokens with bcrypt password verification.
-            Click the preset cards above to seamlessly switch between <strong>John Doe (Patient)</strong> and <strong>System Administrator (Admin)</strong> to preview different role permissions.
-          </p>
+        {/* Dynamic Tab Views */}
+        {activeTab === 'catalog' && (
+          <CatalogView onBookTest={handleBookTestClick} />
+        )}
 
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '1rem',
-            padding: '0.75rem 1.25rem',
-            backgroundColor: 'var(--bg-subtle)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-light)',
-            fontSize: '0.8125rem',
-            fontFamily: 'var(--font-mono)',
-          }}>
-            <span>ACTIVE ROLE: <strong>{user?.role || 'NONE'}</strong></span>
-            <span>·</span>
-            <span>TOKEN: <strong>{localStorage.getItem('eve_auth_token') ? 'PRESENT' : 'ABSENT'}</strong></span>
-            <span>·</span>
-            <span>SECURITY: <strong>HMAC-SHA256 JWT</strong></span>
+        {activeTab !== 'catalog' && (
+          <div className="card" style={{ padding: '2.5rem', textAlign: 'center', backgroundColor: '#FFFFFF' }}>
+            <div className="kicker" style={{ marginBottom: '0.5rem' }}>// CURRENT VIEW: {activeTab.toUpperCase()}</div>
+            <h2 style={{ fontSize: '1.35rem', marginBottom: '0.75rem' }}>
+              {activeTab === 'bookings' && 'Diagnostic Bookings Ledger (Phase 4)'}
+              {activeTab === 'payments' && 'Simulated Payment Gateway & Idempotency (Phase 5)'}
+              {activeTab === 'webhooks' && 'Payment Webhook Testing Sandbox & Concurrency Lab (Phase 6)'}
+              {activeTab === 'telemetry' && 'System Architecture & Telemetry (Phase 7)'}
+            </h2>
+            <p style={{
+              color: 'var(--text-secondary)',
+              maxWidth: '650px',
+              margin: '0 auto 1.5rem',
+              fontSize: '0.875rem',
+              lineHeight: 1.6,
+            }}>
+              {selectedBookingContext ? (
+                <>Selected test: <strong>{selectedBookingContext.centreTest?.test?.name}</strong> at <strong>{selectedBookingContext.centre?.name}</strong> (₹{selectedBookingContext.centreTest?.price}). Ready to connect with Phase 4 booking scheduler!</>
+              ) : (
+                'Select "Catalog Matrix" in the header to browse diagnostic centres and tests with real-time price snapshotting.'
+              )}
+            </p>
+            <button onClick={() => setActiveTab('catalog')} className="btn btn-ink btn-sm">
+              Back to Catalog Matrix
+            </button>
           </div>
-        </div>
+        )}
       </main>
 
       {/* Manual Login / Signup Modal */}
