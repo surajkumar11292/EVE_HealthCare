@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.dependencies import get_current_user
+from app.core.rate_limit import limiter
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import TokenResponse, UserLoginRequest, UserResponse, UserSignUpRequest
@@ -17,7 +19,9 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
     summary="Register a new user account",
     description="Registers a patient or admin user. Enforces email uniqueness and password strength.",
 )
+@limiter.limit(settings.RATE_LIMIT_AUTH)
 async def signup(
+    request: Request,
     payload: UserSignUpRequest,
     db: AsyncSession = Depends(get_db),
 ) -> UserResponse:
@@ -32,7 +36,9 @@ async def signup(
     summary="Authenticate and receive JWT token",
     description="Validates email and password, returning a signed JWT access token for subsequent authenticated requests.",
 )
+@limiter.limit(settings.RATE_LIMIT_AUTH)
 async def login(
+    request: Request,
     payload: UserLoginRequest,
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:

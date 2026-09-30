@@ -6,10 +6,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi_pagination import add_pagination
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 import structlog
 
 from app.core.config import settings
 from app.core.logging import setup_logging, logger
+from app.core.rate_limit import limiter, rate_limit_exceeded_handler
 from app.api.v1.router import api_router
 from app.db.session import engine
 from app.db.base import Base
@@ -49,6 +52,11 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_PREFIX}/openapi.json",
     lifespan=lifespan,
 )
+
+# Attach SlowAPI Limiter state and exception handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 # CORS Configuration
 app.add_middleware(
@@ -105,6 +113,9 @@ async def logging_middleware(request: Request, call_next):
         )
 
 
+from fastapi.encoders import jsonable_encoder
+
+
 # Global Exception Handlers
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -116,7 +127,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             "error": {
                 "code": "VALIDATION_ERROR",
                 "message": "Invalid request parameters.",
-                "details": exc.errors(),
+                "details": jsonable_encoder(exc.errors()),
             }
         },
         headers={"X-Request-ID": request_id},

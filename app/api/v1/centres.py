@@ -1,13 +1,15 @@
 from typing import List, Optional
 import uuid
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.config import settings
 from app.core.dependencies import require_admin
+from app.core.rate_limit import limiter
 from app.db.session import get_db
 from app.models.centre import Centre
 from app.models.centre_test import CentreTest
@@ -32,7 +34,9 @@ router = APIRouter(prefix="/centres", tags=["Diagnostic Centres"])
     summary="List diagnostic centres",
     description="Returns a paginated list of diagnostic centres with optional filtering by location or name.",
 )
+@limiter.limit(settings.RATE_LIMIT_DEFAULT)
 async def list_centres(
+    request: Request,
     name: Optional[str] = Query(None, description="Filter by centre name substring"),
     location: Optional[str] = Query(None, description="Filter by location substring"),
     is_active: Optional[bool] = Query(True, description="Filter by active status"),

@@ -1,13 +1,15 @@
 from typing import Optional
 import uuid
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.config import settings
 from app.core.dependencies import get_current_user
+from app.core.rate_limit import limiter
 from app.db.session import get_db
 from app.models.booking import Booking, BookingStatus
 from app.models.centre_test import CentreTest
@@ -29,7 +31,9 @@ router = APIRouter(prefix="/bookings", tags=["Bookings"])
     summary="Create a new diagnostic test booking",
     description="Allows an authenticated patient to book a diagnostic test. Snapshots price and initialises status to PENDING.",
 )
+@limiter.limit(settings.RATE_LIMIT_DEFAULT)
 async def create_booking(
+    request: Request,
     payload: BookingCreateRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
