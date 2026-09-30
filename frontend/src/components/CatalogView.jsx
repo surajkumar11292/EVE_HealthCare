@@ -16,6 +16,7 @@ import {
   ShoppingCart,
   Building2,
   Check,
+  Copy,
 } from 'lucide-react';
 
 export default function CatalogView({ onGoToCart }) {
@@ -32,6 +33,17 @@ export default function CatalogView({ onGoToCart }) {
   const [selectedCity, setSelectedCity] = useState('ALL');
   const [selectedCentre, setSelectedCentre] = useState(null); // When set, shows tests for this clinic only
   const [isAddCentreOpen, setIsAddCentreOpen] = useState(false);
+  const [copiedPhone, setCopiedPhone] = useState(null);
+
+  const handleCopyPhone = (number, e) => {
+    if (e) e.stopPropagation();
+    if (!number) return;
+    navigator.clipboard.writeText(number);
+    setCopiedPhone(number);
+    setTimeout(() => {
+      setCopiedPhone((prev) => (prev === number ? null : prev));
+    }, 2000);
+  };
 
   const fetchCentres = async () => {
     setLoading(true);
@@ -140,7 +152,43 @@ export default function CatalogView({ onGoToCart }) {
                     {selectedCentre.contact_number && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                         <Phone size={13} color="var(--text-muted)" />
-                        <span>{selectedCentre.contact_number}</span>
+                        <a
+                          href={`tel:${selectedCentre.contact_number}`}
+                          style={{ color: 'inherit', textDecoration: 'none' }}
+                          title="Click to call"
+                        >
+                          {selectedCentre.contact_number}
+                        </a>
+                        <button
+                          type="button"
+                          onClick={(e) => handleCopyPhone(selectedCentre.contact_number, e)}
+                          title="Copy phone number"
+                          style={{
+                            background: copiedPhone === selectedCentre.contact_number ? '#DCFCE7' : 'rgba(0,0,0,0.04)',
+                            border: '1px solid',
+                            borderColor: copiedPhone === selectedCentre.contact_number ? '#86EFAC' : 'transparent',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '3px 5px',
+                            marginLeft: '2px',
+                            color: copiedPhone === selectedCentre.contact_number ? '#15803d' : 'var(--text-muted)',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {copiedPhone === selectedCentre.contact_number ? (
+                            <Check size={12} color="#15803d" />
+                          ) : (
+                            <Copy size={12} />
+                          )}
+                        </button>
+                        {copiedPhone === selectedCentre.contact_number && (
+                          <span style={{ fontSize: '0.72rem', color: '#15803d', fontWeight: 600 }}>
+                            Copied!
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -489,7 +537,43 @@ export default function CatalogView({ onGoToCart }) {
                         {centre.contact_number && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                             <Phone size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                            <span>{centre.contact_number}</span>
+                            <a
+                              href={`tel:${centre.contact_number}`}
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ color: 'inherit', textDecoration: 'none' }}
+                              title="Click to call"
+                            >
+                              {centre.contact_number}
+                            </a>
+                            <button
+                              type="button"
+                              onClick={(e) => handleCopyPhone(centre.contact_number, e)}
+                              title="Copy phone number"
+                              style={{
+                                background: copiedPhone === centre.contact_number ? '#DCFCE7' : 'rgba(0,0,0,0.04)',
+                                border: '1px solid',
+                                borderColor: copiedPhone === centre.contact_number ? '#86EFAC' : 'transparent',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: '2px 4px',
+                                color: copiedPhone === centre.contact_number ? '#15803d' : 'var(--text-muted)',
+                                transition: 'all 0.15s ease',
+                              }}
+                            >
+                              {copiedPhone === centre.contact_number ? (
+                                <Check size={11} color="#15803d" />
+                              ) : (
+                                <Copy size={11} />
+                              )}
+                            </button>
+                            {copiedPhone === centre.contact_number && (
+                              <span style={{ fontSize: '0.7rem', color: '#15803d', fontWeight: 600 }}>
+                                Copied!
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
