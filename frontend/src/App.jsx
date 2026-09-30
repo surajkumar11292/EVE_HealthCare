@@ -7,6 +7,7 @@ import CatalogView from './components/CatalogView';
 import BookingsView from './components/BookingsView';
 import BookingModal from './components/BookingModal';
 import PaymentsView from './components/PaymentsView';
+import WebhookSandbox from './components/WebhookSandbox';
 
 function MainContent() {
   const [activeTab, setActiveTab] = useState('catalog');
@@ -69,7 +70,13 @@ function MainContent() {
           />
         )}
 
-        {activeTab !== 'catalog' && activeTab !== 'bookings' && activeTab !== 'payments' && (
+        {activeTab === 'webhooks' && (
+          <WebhookSandbox
+            initialBooking={selectedWebhookBooking}
+          />
+        )}
+
+        {activeTab !== 'catalog' && activeTab !== 'bookings' && activeTab !== 'payments' && activeTab !== 'webhooks' && (
           <div className="card" style={{ padding: '2.5rem', textAlign: 'center', backgroundColor: '#FFFFFF' }}>
             <div className="kicker" style={{ marginBottom: '0.5rem' }}>// CURRENT VIEW: {activeTab.toUpperCase()}</div>
             <h2 style={{ fontSize: '1.35rem', marginBottom: '0.75rem' }}>
