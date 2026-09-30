@@ -29,8 +29,7 @@ Built with an asynchronous **FastAPI** backend, **PostgreSQL** with SQLAlchemy 2
 11. [Payment Webhook Implementation](#11-payment-webhook-implementation)
 12. [Automated Test Suite (42 Tests)](#12-automated-test-suite-42-tests)
 13. [Configuration & Environment Variables](#13-configuration--environment-variables)
-14. [Architectural Decisions & Production Roadmap](#14-architectural-decisions--production-roadmap)
-15. [Assignment Submission Copy-Paste Block](#15-assignment-submission-copy-paste-block)
+14. [Design Notes & What I'd Build Next](#14-design-notes--what-id-build-next)
 
 ---
 
@@ -680,56 +679,15 @@ All variables are pre-configured in `docker-compose.yml` for local development:
 
 ---
 
-## 14. Architectural Decisions & Production Roadmap
+## 14. Design Notes & What I'd Build Next
 
-### Key Design Decisions
+### Why Things Are Built This Way
 1. **Price Snapshotting:** The price stored on `bookings.amount` is frozen at the moment of booking creation from `centre_tests.price`. Subsequent laboratory price adjustments do not impact existing bookings.
 2. **Soft Deletion of Facilities:** Clinics are deactivated (`is_active = false`) rather than hard deleted, ensuring foreign-key integrity for historical appointments.
 3. **Database-Level Idempotency:** Critical financial workflows rely on ACID transaction isolation and unique database constraints rather than in-memory caches, guaranteeing correctness across scaled worker processes.
 
-### Production Enhancements with More Time
+### What I'd Add With More Time
 - **Slot Capacity & Concurrency Locking:** Introduce time slot booking quotas to prevent overlapping bookings for the same phlebotomist.
 - **Refresh Token Rotation:** Upgrade auth flow from single access tokens to short-lived access tokens with rotating refresh tokens stored in secure `HttpOnly` cookies.
 - **Live Payment Gateway Adapter:** Replace simulated card processing with Razorpay / Stripe webhook event adapters using the existing service interface.
 - **Prometheus & OpenTelemetry:** Export distributed tracing spans and metrics for P99 latency and queue depth monitoring.
-
----
-
-## 15. Assignment Submission Copy-Paste Block
-
-Copy and paste the formatted block below directly into your assignment submission notes:
-
-```markdown
-### How to Run Locally (Docker)
-1. Start services:
-   docker compose up --build
-2. Seed initial data (run in a separate terminal once containers are up):
-   docker compose exec web python scripts/seed.py
-3. Run automated tests (42 tests, 100% passing):
-   docker compose exec web pytest tests/ -v
-
-- Frontend UI: http://localhost:5173
-- Backend REST API: http://localhost:8000
-- Swagger Docs: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-
-### Demo Credentials (Pre-seeded with 1-Tap Autofill)
-- Administrator: Dr. Rohan Mehra (admin@evehealthcare.com / Admin@123456)
-- Patient #1: Suraj Kumar (patient@evehealthcare.com / Patient@123456)
-- Patient #2: Ananya Sharma (patient2@evehealthcare.com / Patient@123456)
-- Patient #3: Rajesh Patel (patient3@evehealthcare.com / Patient@123456)
-
-### Key Assumptions & Design Decisions
-1. State Machine: Bookings follow strict transitions (PENDING -> CONFIRMED | FAILED | CANCELLED). Only PENDING bookings can transition to CONFIRMED via successful payment or webhook.
-2. Price Integrity: Test price is snapshotted into the booking record at creation time to prevent retroactive discrepancies if the centre modifies prices later.
-3. Payment Idempotency: Enforced at both application and database levels (`idempotency_key` unique constraint) to guarantee safe retries.
-4. Webhook Security: Mandatory HMAC-SHA256 signature verification on `/payments/webhook/`. Duplicate deliveries are handled idempotently via row-level locking on the `webhook_events` ledger.
-5. Single-Clinic Cart & User Isolation: Carts are isolated per user in local storage (`eve_cart_items_user_<email>`) and enforce single-clinic booking with an interactive conflict resolution modal.
-6. Clean Evaluation Slate: Seeder generates 16 clinics, 20 tests, and 133 linked offerings, but starts with 0 appointments so the evaluator can test fresh bookings end-to-end.
-
-### If Given More Time (Production Roadmap)
-1. Slot Capacity & Concurrency Locking: Phlebotomist slot capacity quotas with Redis distributed locks.
-2. Live Payment Gateway: Plug in real Razorpay/Stripe webhooks using the existing PaymentService interface.
-3. Refresh Token Rotation: Dual-token auth architecture with short-lived access tokens and HttpOnly refresh cookies.
-4. Observability: Prometheus metrics exporter and OpenTelemetry distributed tracing spans.
-```
