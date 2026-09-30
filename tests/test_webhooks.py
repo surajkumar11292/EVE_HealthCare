@@ -218,3 +218,34 @@ async def test_concurrent_webhook_deliveries(
     assert "processed" in statuses
     assert all(s in ["processed", "already_processed"] for s in statuses)
 
+
+@pytest.mark.asyncio
+async def test_webhook_root_endpoint_compatibility(
+    client: AsyncClient,
+    sample_booking: Booking,
+):
+    """
+    Verifies that the root path POST /payments/webhook/ (as specified in assignment)
+    works identically to /api/v1/payments/webhook/.
+    """
+    event_id = f"evt_root_{uuid.uuid4().hex[:12]}"
+    payload_dict = {
+        "event_id": event_id,
+        "event_type": "payment.success",
+        "transaction_id": "TXN-ROOT-WEBHOOK-1",
+        "booking_id": str(sample_booking.id),
+        "status": "SUCCESS",
+    }
+    raw_body = json.dumps(payload_dict).encode("utf-8")
+    sig = payment_service.generate_signature(raw_body)
+    headers = {
+        "Content-Type": "application/json",
+        "X-Webhook-Signature": sig,
+    }
+
+    response = await client.post("/payments/webhook/", content=raw_body, headers=headers)
+    assert response.status_code == 200
+    assert response.json()["status"] == "processed"
+    assert response.json()["event_id"] == event_id
+
+

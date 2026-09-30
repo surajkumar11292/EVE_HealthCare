@@ -121,18 +121,13 @@ class PaymentService:
                 detail="A payment has already been recorded for this booking.",
             )
 
-        # 6. Simulate Payment Outcome (80% SUCCESS, 20% FAILED, or forced if provided)
+        # 6. Simulate Payment Outcome (Defaults to SUCCESS, or forced if provided)
         transaction_id = f"TXN-{uuid.uuid4().hex[:12].upper()}"
 
         if payload.force_status:
             payment_status = payload.force_status
         else:
-            # Realistic 80% success probability
-            payment_status = random.choices(
-                [PaymentStatus.SUCCESS, PaymentStatus.FAILED],
-                weights=[0.8, 0.2],
-                k=1,
-            )[0]
+            payment_status = PaymentStatus.SUCCESS
 
         failure_reason = None
         if payment_status == PaymentStatus.SUCCESS:

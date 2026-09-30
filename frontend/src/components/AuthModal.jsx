@@ -1,46 +1,72 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { X, User, Shield, Mail, Lock, Phone, ArrowRight, Zap, CheckCircle2 } from 'lucide-react';
+import { X, User, Shield, Mail, Lock, CheckCircle2, ArrowRight } from 'lucide-react';
+
+const PRESEEDED_ACCOUNTS = [
+  {
+    id: 'patient1',
+    role: 'PATIENT',
+    name: 'Suraj Kumar',
+    subtitle: 'Patient #1 (Cardiology & CBC)',
+    email: 'patient@evehealthcare.com',
+    password: 'Patient@123456',
+    color: '#059669',
+    bgColor: '#ECFDF5',
+  },
+  {
+    id: 'patient2',
+    role: 'PATIENT',
+    name: 'Ananya Sharma',
+    subtitle: 'Patient #2 (Thyroid & Vitamins)',
+    email: 'patient2@evehealthcare.com',
+    password: 'Patient@123456',
+    color: '#0284C7',
+    bgColor: '#F0F9FF',
+  },
+  {
+    id: 'patient3',
+    role: 'PATIENT',
+    name: 'Rajesh Patel',
+    subtitle: 'Patient #3 (Diabetic Care & KFT)',
+    email: 'patient3@evehealthcare.com',
+    password: 'Patient@123456',
+    color: '#7C3AED',
+    bgColor: '#F5F3FF',
+  },
+  {
+    id: 'admin',
+    role: 'ADMIN',
+    name: 'Dr. Rohan Mehra',
+    subtitle: 'Administrator (Chief Lab Admin)',
+    email: 'admin@evehealthcare.com',
+    password: 'Admin@123456',
+    color: '#D97706',
+    bgColor: '#FFFBEB',
+  },
+];
 
 export default function AuthModal({ isOpen, onClose, intentMessage, onLoginSuccess }) {
-  const { login, signup, switchPersona } = useAuth();
+  const { login, signup } = useAuth();
   const [tab, setTab] = useState('login'); // 'login' | 'signup'
   const [loading, setLoading] = useState(false);
-  const [quickLoginRole, setQuickLoginRole] = useState(null);
+  const [selectedAccountId, setSelectedAccountId] = useState(null);
+  const [fillNotice, setFillNotice] = useState(null);
   const [error, setError] = useState(null);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
   const [role, setRole] = useState('PATIENT');
 
   if (!isOpen) return null;
 
-  // One-click pre-seed & instant sign in
-  const handleQuickSignIn = async (targetRole) => {
-    setLoading(true);
-    setQuickLoginRole(targetRole);
+  // 1-Tap Fill: Fills email & password without auto-submitting
+  const handleTapToFill = (acc) => {
+    setEmail(acc.email);
+    setPassword(acc.password);
+    setSelectedAccountId(acc.id);
     setError(null);
-
-    const targetEmail = targetRole === 'ADMIN' ? 'admin@evehealthcare.com' : 'patient@evehealthcare.com';
-    const targetPassword = targetRole === 'ADMIN' ? 'Admin@123456' : 'Patient@123456';
-
-    setEmail(targetEmail);
-    setPassword(targetPassword);
-
-    try {
-      const loggedUser = await switchPersona(targetRole);
-      if (onLoginSuccess) {
-        onLoginSuccess(loggedUser);
-      }
-      onClose();
-    } catch (err) {
-      setError(err.message || 'Quick login failed. Please try again.');
-    } finally {
-      setLoading(false);
-      setQuickLoginRole(null);
-    }
+    setFillNotice(`Credentials loaded for ${acc.name}. Click "Sign In" below to proceed.`);
   };
 
   const handleLoginSubmit = async (e) => {
@@ -69,7 +95,6 @@ export default function AuthModal({ isOpen, onClose, intentMessage, onLoginSucce
         email,
         password,
         full_name: fullName,
-        phone_number: phoneNumber || null,
         role,
       });
       if (onLoginSuccess) {
@@ -85,7 +110,11 @@ export default function AuthModal({ isOpen, onClose, intentMessage, onLoginSucce
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+      <div
+        className="modal-content"
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxWidth: '440px', maxHeight: '92vh', overflowY: 'auto' }}
+      >
         {/* Header */}
         <div style={{
           padding: '1.25rem 1.25rem 1rem',
@@ -95,10 +124,10 @@ export default function AuthModal({ isOpen, onClose, intentMessage, onLoginSucce
           justifyContent: 'space-between',
         }}>
           <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text-main)' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text-main)', margin: 0 }}>
               {tab === 'login' ? 'Sign In' : 'Create Account'}
             </h2>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.2rem', margin: 0 }}>
               {intentMessage || (tab === 'login' ? 'Access your appointments and diagnostic reports' : 'Register to book appointments')}
             </p>
           </div>
@@ -121,20 +150,16 @@ export default function AuthModal({ isOpen, onClose, intentMessage, onLoginSucce
               color: 'var(--status-error-text)',
               fontSize: '0.8125rem',
               marginBottom: '1rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
             }}>
-              <span className="dot rose"></span>
-              <span>{error}</span>
+              {error}
             </div>
           )}
 
           {tab === 'login' && (
             <>
-              {/* 1-Click Pre-seeded Instant Login Box */}
+              {/* 1-Tap Fill Credentials Box */}
               <div style={{
-                marginBottom: '1.25rem',
+                marginBottom: '1.15rem',
                 padding: '0.85rem',
                 backgroundColor: 'var(--bg-subtle)',
                 borderRadius: 'var(--radius-lg)',
@@ -146,134 +171,89 @@ export default function AuthModal({ isOpen, onClose, intentMessage, onLoginSucce
                   textTransform: 'uppercase',
                   letterSpacing: '0.04em',
                   color: 'var(--text-muted)',
-                  marginBottom: '0.65rem',
+                  marginBottom: '0.5rem',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.35rem',
+                  justifyContent: 'space-between',
                 }}>
-                  <Zap size={12} color="var(--accent-gold)" />
-                  1-Click Instant Login (Pre-seeded):
+                  <span>Demo Accounts (1-Tap Fill)</span>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 400 }}>Tap to fill fields</span>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {/* Patient Button */}
-                  <button
-                    type="button"
-                    onClick={() => handleQuickSignIn('PATIENT')}
-                    disabled={loading}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0.65rem 0.85rem',
-                      backgroundColor: '#FFFFFF',
-                      border: '1px solid var(--border-light)',
-                      borderRadius: 'var(--radius-md)',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--text-main)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--border-light)';
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                      <div style={{
-                        width: '28px',
-                        height: '28px',
-                        borderRadius: 'var(--radius-full)',
-                        backgroundColor: '#ECFDF5',
-                        color: '#059669',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}>
-                        <User size={14} />
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                          Patient: John Doe
-                        </div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                          patient@evehealthcare.com
-                        </div>
-                      </div>
-                    </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.45rem' }}>
+                  {PRESEEDED_ACCOUNTS.map((acc) => {
+                    const isSelected = selectedAccountId === acc.id;
+                    const isRoleAdmin = acc.role === 'ADMIN';
 
-                    <span style={{
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      color: quickLoginRole === 'PATIENT' ? 'var(--accent-gold)' : 'var(--text-main)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.2rem',
-                    }}>
-                      {quickLoginRole === 'PATIENT' ? 'Signing In...' : 'Sign In →'}
-                    </span>
-                  </button>
-
-                  {/* Admin Button */}
-                  <button
-                    type="button"
-                    onClick={() => handleQuickSignIn('ADMIN')}
-                    disabled={loading}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0.65rem 0.85rem',
-                      backgroundColor: '#FFFFFF',
-                      border: '1px solid var(--border-light)',
-                      borderRadius: 'var(--radius-md)',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--text-main)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--border-light)';
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                      <div style={{
-                        width: '28px',
-                        height: '28px',
-                        borderRadius: 'var(--radius-full)',
-                        backgroundColor: '#FFFBEB',
-                        color: '#D97706',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}>
-                        <Shield size={14} />
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                          Administrator: System Admin
+                    return (
+                      <button
+                        key={acc.id}
+                        type="button"
+                        onClick={() => handleTapToFill(acc)}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          padding: '0.55rem 0.65rem',
+                          backgroundColor: isSelected ? '#FFFFFF' : '#FFFFFF',
+                          border: isSelected ? '1.5px solid var(--text-main)' : '1px solid var(--border-light)',
+                          borderRadius: 'var(--radius-md)',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s ease',
+                          position: 'relative',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
+                          <div style={{
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: 'var(--radius-full)',
+                            backgroundColor: acc.bgColor,
+                            color: acc.color,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}>
+                            {isRoleAdmin ? <Shield size={11} /> : <User size={11} />}
+                          </div>
+                          <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {acc.name}
+                          </span>
                         </div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                          admin@evehealthcare.com
-                        </div>
-                      </div>
-                    </div>
 
-                    <span style={{
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      color: quickLoginRole === 'ADMIN' ? 'var(--accent-gold)' : 'var(--text-main)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.2rem',
-                    }}>
-                      {quickLoginRole === 'ADMIN' ? 'Signing In...' : 'Sign In →'}
-                    </span>
-                  </button>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {acc.email}
+                        </div>
+
+                        {isSelected && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '4px',
+                            right: '4px',
+                          }}>
+                            <CheckCircle2 size={12} color="var(--accent-gold)" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
+
+                {fillNotice && (
+                  <div style={{
+                    marginTop: '0.65rem',
+                    fontSize: '0.75rem',
+                    color: 'var(--accent-gold)',
+                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                  }}>
+                    <CheckCircle2 size={12} />
+                    <span>{fillNotice}</span>
+                  </div>
+                )}
               </div>
 
               {/* Divider */}
@@ -281,25 +261,29 @@ export default function AuthModal({ isOpen, onClose, intentMessage, onLoginSucce
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                margin: '1rem 0',
+                margin: '0.85rem 0',
                 color: 'var(--text-faint)',
-                fontSize: '0.75rem',
+                fontSize: '0.72rem',
               }}>
                 <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-light)' }}></div>
-                <span>or enter credentials</span>
+                <span>sign in credentials</span>
                 <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-light)' }}></div>
               </div>
 
               {/* Standard Form */}
               <form onSubmit={handleLoginSubmit}>
-                <div className="form-group">
-                  <label className="form-label">Email</label>
+                <div className="form-group" style={{ marginBottom: '0.75rem' }}>
+                  <label className="form-label">Email Address</label>
                   <div style={{ position: 'relative' }}>
                     <input
                       type="email"
                       required
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        setSelectedAccountId(null);
+                        setFillNotice(null);
+                      }}
                       placeholder="name@evehealthcare.com"
                       className="form-input"
                       style={{ paddingLeft: '2rem' }}
@@ -315,7 +299,11 @@ export default function AuthModal({ isOpen, onClose, intentMessage, onLoginSucce
                       type="password"
                       required
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        setSelectedAccountId(null);
+                        setFillNotice(null);
+                      }}
                       placeholder="••••••••"
                       className="form-input"
                       style={{ paddingLeft: '2rem' }}
@@ -328,9 +316,9 @@ export default function AuthModal({ isOpen, onClose, intentMessage, onLoginSucce
                   type="submit"
                   disabled={loading}
                   className="btn btn-ink"
-                  style={{ width: '100%', padding: '0.65rem' }}
+                  style={{ width: '100%', padding: '0.68rem', fontSize: '0.875rem' }}
                 >
-                  {loading && !quickLoginRole ? 'Signing In...' : 'Sign In'}
+                  {loading ? 'Signing In...' : 'Sign In'}
                   <span className="arrow-gold">→</span>
                 </button>
               </form>
@@ -339,7 +327,7 @@ export default function AuthModal({ isOpen, onClose, intentMessage, onLoginSucce
 
           {tab === 'signup' && (
             <form onSubmit={handleSignupSubmit}>
-              <div className="form-group">
+              <div className="form-group" style={{ marginBottom: '0.75rem' }}>
                 <label className="form-label">Full Name</label>
                 <input
                   type="text"
@@ -351,7 +339,7 @@ export default function AuthModal({ isOpen, onClose, intentMessage, onLoginSucce
                 />
               </div>
 
-              <div className="form-group">
+              <div className="form-group" style={{ marginBottom: '0.75rem' }}>
                 <label className="form-label">Email Address</label>
                 <input
                   type="email"
@@ -363,14 +351,14 @@ export default function AuthModal({ isOpen, onClose, intentMessage, onLoginSucce
                 />
               </div>
 
-              <div className="form-group">
+              <div className="form-group" style={{ marginBottom: '0.75rem' }}>
                 <label className="form-label">Password</label>
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min 8 characters"
+                  placeholder="Min 8 chars, 1 uppercase, 1 digit, 1 special"
                   className="form-input"
                 />
               </div>
@@ -391,9 +379,9 @@ export default function AuthModal({ isOpen, onClose, intentMessage, onLoginSucce
                 type="submit"
                 disabled={loading}
                 className="btn btn-ink"
-                style={{ width: '100%', padding: '0.65rem' }}
+                style={{ width: '100%', padding: '0.68rem', fontSize: '0.875rem' }}
               >
-                {loading ? 'Creating...' : 'Register Account'}
+                {loading ? 'Creating Account...' : 'Register Account'}
                 <span className="arrow-gold">→</span>
               </button>
             </form>

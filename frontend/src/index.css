@@ -6,52 +6,52 @@
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* Impeccable Crisp Monochromatic Neutrals */
-  --bg-page: #FFFFFF;
+  /* Impeccable Exact Warm Yellowish Paper Canvas (oklch 97.8% 0.005 85 / #FAF8F2) */
+  --bg-page: #FAF8F2;
   --bg-surface: #FFFFFF;
-  --bg-subtle: #F4F4F5;
-  --bg-subtle-hover: #EBEBEF;
+  --bg-subtle: #F4EFE6;
+  --bg-subtle-hover: #ECE6DB;
   --bg-card: #FFFFFF;
 
-  --text-main: #0A0A0A;
-  --text-secondary: #52525B;
-  --text-muted: #71717A;
-  --text-faint: #A1A1AA;
+  --text-main: #141312;
+  --text-secondary: #58554E;
+  --text-muted: #827E75;
+  --text-faint: #B5B0A4;
   --text-inverse: #FFFFFF;
 
-  /* Subtle Crisp Impeccable Borders */
-  --border-light: #E4E4E7;
-  --border-subtle: #D4D4D8;
-  --border-strong: #0A0A0A;
+  /* Impeccable Subtle Warm Rules & Borders */
+  --border-light: #E8E2D5;
+  --border-subtle: #DDD6C8;
+  --border-strong: #141312;
 
-  /* Impeccable Signature Accents */
-  --accent-gold: #F59E0B;
-  --accent-gold-hover: #D97706;
-  --accent-green: #10B981;
-  --accent-green-bg: #ECFDF5;
-  --accent-green-border: #A7F3D0;
+  /* Impeccable Signature Kinpaku Gold & Botanical Accents */
+  --accent-gold: #D97706;
+  --accent-gold-hover: #B45309;
+  --accent-green: #15803D;
+  --accent-green-bg: #F0FDF4;
+  --accent-green-border: #BBF7D0;
 
   /* Status Tokens */
-  --status-success-text: #065F46;
-  --status-success-bg: #ECFDF5;
-  --status-success-border: #A7F3D0;
-  --status-success-dot: #10B981;
+  --status-success-text: #166534;
+  --status-success-bg: #F0FDF4;
+  --status-success-border: #BBF7D0;
+  --status-success-dot: #16A34A;
 
   --status-warning-text: #92400E;
   --status-warning-bg: #FFFBEB;
   --status-warning-border: #FDE68A;
-  --status-warning-dot: #F59E0B;
+  --status-warning-dot: #D97706;
 
   --status-error-text: #991B1B;
   --status-error-bg: #FEF2F2;
   --status-error-border: #FECACA;
   --status-error-dot: #EF4444;
 
-  /* Crisp Impeccable Elevation */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.03);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 12px 28px -4px rgba(0, 0, 0, 0.08);
+  /* Impeccable Warm Lift Elevation */
+  --shadow-xs: 0 1px 2px rgba(20, 19, 18, 0.03);
+  --shadow-sm: 0 2px 4px rgba(20, 19, 18, 0.04), 0 1px 2px rgba(20, 19, 18, 0.02);
+  --shadow-md: 0 4px 12px rgba(20, 19, 18, 0.05);
+  --shadow-lg: 0 12px 28px -4px rgba(20, 19, 18, 0.08);
 
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -182,15 +182,8 @@ p {
 }
 
 .dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  display: inline-block;
+  display: none !important;
 }
-
-.dot.green { background-color: var(--accent-green); }
-.dot.amber { background-color: var(--accent-gold); }
-.dot.rose { background-color: var(--status-error-dot); }
 
 /* Buttons */
 .btn {

@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { CreditCard, CheckCircle2, XCircle, RefreshCw, Key, ShieldCheck, AlertCircle, ArrowRight, Lock, Check } from 'lucide-react';
+import { CreditCard, CheckCircle2, XCircle, RefreshCw, Lock, ShieldCheck, FileText } from 'lucide-react';
 
 export default function PaymentsView({ initialBooking, onPaymentSuccess }) {
   const { user } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [selectedBookingId, setSelectedBookingId] = useState(initialBooking?.id || '');
   const [idempotencyKey, setIdempotencyKey] = useState('');
-  const [simulationMode, setSimulationMode] = useState('FORCE_SUCCESS'); // Default to clean success for normal user experience
+  const [simulationMode, setSimulationMode] = useState('FORCE_SUCCESS');
   const [loading, setLoading] = useState(false);
   const [lastPaymentResult, setLastPaymentResult] = useState(null);
   const [error, setError] = useState(null);
@@ -88,60 +88,63 @@ export default function PaymentsView({ initialBooking, onPaymentSuccess }) {
     }
   };
 
+  const pendingCount = bookings.filter((b) => b.status === 'PENDING').length;
+
   return (
-    <div>
-      {/* Header */}
+    <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+      {/* Compact Page Header (Fit in 1 page without scrolling) */}
       <div style={{
         display: 'flex',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '1rem',
-        marginBottom: '2rem',
+        marginBottom: '1rem',
       }}>
         <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text-main)' }}>
+          <h1 style={{ fontSize: '1.45rem', fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text-main)', margin: 0 }}>
             Pay Online
           </h1>
-          <p style={{ fontSize: '0.9375rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-            Complete secure payment for your scheduled diagnostic checkup.
+          <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', margin: '0.15rem 0 0' }}>
+            Instant payment checkout for your scheduled diagnostic appointments.
           </p>
+        </div>
+
+        <div className="pill-badge neutral" style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem' }}>
+          {pendingCount} pending payment
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '1.5rem' }}>
-        {/* Left: Checkout Box */}
-        <div className="card" style={{ padding: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <CreditCard size={18} />
-            Checkout & Confirmation
-          </h2>
+      {/* 2-Column Compact Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '1.25rem', alignItems: 'start' }}>
+        {/* Left Column: Checkout Card */}
+        <div className="card" style={{ padding: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+            <h2 style={{ fontSize: '1.05rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.45rem', margin: 0 }}>
+              <CreditCard size={16} />
+              Checkout
+            </h2>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+              Encrypted Checkout
+            </div>
+          </div>
 
           {error && (
             <div style={{
-              padding: '0.75rem 1rem',
+              padding: '0.5rem 0.75rem',
               backgroundColor: 'var(--status-error-bg)',
               border: '1px solid var(--status-error-border)',
               borderRadius: 'var(--radius-md)',
               color: 'var(--status-error-text)',
-              fontSize: '0.875rem',
-              marginBottom: '1.25rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
+              fontSize: '0.8125rem',
+              marginBottom: '0.85rem',
             }}>
-              <AlertCircle size={15} />
-              <span>{error}</span>
+              {error}
             </div>
           )}
 
           {/* Select Appointment */}
-          <div className="form-group">
-            <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Select Appointment</span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                {bookings.filter((b) => b.status === 'PENDING').length} pending payment
-              </span>
+          <div style={{ marginBottom: '0.85rem' }}>
+            <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.3rem', display: 'block' }}>
+              Select Appointment
             </label>
             <select
               value={selectedBookingId}
@@ -151,230 +154,213 @@ export default function PaymentsView({ initialBooking, onPaymentSuccess }) {
                 setLastPaymentResult(null);
               }}
               className="form-select"
-              style={{ fontSize: '0.875rem' }}
+              style={{ fontSize: '0.8125rem', padding: '0.45rem 0.65rem', height: '36px' }}
             >
               {bookings.length === 0 ? (
-                <option value="">No appointments scheduled yet</option>
+                <option value="">No appointments scheduled</option>
               ) : (
                 bookings.map((b) => (
                   <option key={b.id} value={b.id}>
-                    {b.test_name} at {b.centre_name} — ₹{parseFloat(b.amount).toFixed(2)} ({b.status})
+                    {b.status === 'PENDING' ? '⏳ [Pending Payment]' : b.status === 'CONFIRMED' ? '✓ [Paid & Confirmed]' : `[${b.status}]`} {b.test_name} — ₹{parseFloat(b.amount).toFixed(2)} ({b.centre_name})
                   </option>
                 ))
               )}
             </select>
           </div>
 
-          {/* Selected Booking Details Card */}
+          {/* Selected Booking Summary */}
           {selectedBooking && (
             <div style={{
-              padding: '1.25rem',
+              padding: '0.85rem 1rem',
               backgroundColor: 'var(--bg-subtle)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-light)',
-              marginBottom: '1.5rem',
+              marginBottom: '0.85rem',
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--text-main)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1, minWidth: 0, paddingRight: '0.5rem' }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {selectedBooking.test_name}
                   </div>
-                  <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
-                    {selectedBooking.centre_name} · {selectedBooking.centre_location}
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }}>
+                    {selectedBooking.centre_name}
                   </div>
                 </div>
 
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    Total Payable
-                  </div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Payable</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.1 }}>
                     ₹{parseFloat(selectedBooking.amount).toFixed(2)}
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-light)', paddingTop: '0.65rem', marginTop: '0.65rem', fontSize: '0.8125rem' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Status:</span>
-                <span className={`pill-badge ${selectedBooking.status === 'CONFIRMED' ? 'success' : selectedBooking.status === 'PENDING' ? 'warning' : 'error'}`}>
-                  <span className={`dot ${selectedBooking.status === 'CONFIRMED' ? 'green' : selectedBooking.status === 'PENDING' ? 'amber' : 'rose'}`}></span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(0,0,0,0.05)', fontSize: '0.75rem' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Booking Status:</span>
+                <span className={`pill-badge ${selectedBooking.status === 'CONFIRMED' ? 'success' : selectedBooking.status === 'PENDING' ? 'warning' : 'error'}`} style={{ padding: '0.1rem 0.5rem' }}>
                   {selectedBooking.status === 'CONFIRMED' ? 'Paid & Confirmed' : selectedBooking.status === 'PENDING' ? 'Pending Payment' : selectedBooking.status}
                 </span>
               </div>
             </div>
           )}
 
-          {/* Payment Simulation Options */}
-          <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-            <label className="form-label">Payment Simulation Option</label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+          {/* Simulation Toggle (Compact inline buttons) */}
+          <div style={{ marginBottom: '1rem' }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.35rem', fontWeight: 500 }}>
+              Payment Simulation Mode
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
               <button
                 type="button"
                 onClick={() => setSimulationMode('FORCE_SUCCESS')}
                 style={{
-                  padding: '0.6rem',
-                  fontSize: '0.8125rem',
-                  borderRadius: 'var(--radius-md)',
+                  padding: '0.4rem',
+                  fontSize: '0.75rem',
+                  borderRadius: 'var(--radius-sm)',
                   border: simulationMode === 'FORCE_SUCCESS' ? '1px solid var(--text-main)' : '1px solid var(--border-light)',
-                  backgroundColor: simulationMode === 'FORCE_SUCCESS' ? 'var(--text-main)' : 'var(--bg-surface)',
+                  backgroundColor: simulationMode === 'FORCE_SUCCESS' ? 'var(--text-main)' : '#FFFFFF',
                   color: simulationMode === 'FORCE_SUCCESS' ? '#FFFFFF' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   fontWeight: simulationMode === 'FORCE_SUCCESS' ? 600 : 400,
-                  textAlign: 'center',
+                  transition: 'all 0.12s ease',
                 }}
               >
-                Instant Success (Standard)
+                Instant Success
               </button>
 
               <button
                 type="button"
                 onClick={() => setSimulationMode('FORCE_FAILED')}
                 style={{
-                  padding: '0.6rem',
-                  fontSize: '0.8125rem',
-                  borderRadius: 'var(--radius-md)',
+                  padding: '0.4rem',
+                  fontSize: '0.75rem',
+                  borderRadius: 'var(--radius-sm)',
                   border: simulationMode === 'FORCE_FAILED' ? '1px solid var(--status-error-border)' : '1px solid var(--border-light)',
-                  backgroundColor: simulationMode === 'FORCE_FAILED' ? 'var(--status-error-bg)' : 'var(--bg-surface)',
+                  backgroundColor: simulationMode === 'FORCE_FAILED' ? 'var(--status-error-bg)' : '#FFFFFF',
                   color: simulationMode === 'FORCE_FAILED' ? 'var(--status-error-text)' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   fontWeight: simulationMode === 'FORCE_FAILED' ? 600 : 400,
-                  textAlign: 'center',
+                  transition: 'all 0.12s ease',
                 }}
               >
-                Simulate Declined Card
+                Simulate Decline
               </button>
             </div>
           </div>
 
-          {/* Submit Action */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <button
-              type="button"
-              onClick={() => handleProcessPayment()}
-              disabled={loading || !selectedBookingId || selectedBooking?.status === 'CONFIRMED'}
-              className="btn btn-ink"
-              style={{ width: '100%', padding: '0.75rem' }}
-            >
-              {loading ? (
-                <>
-                  <RefreshCw size={14} className="pulse" />
-                  Processing Payment...
-                </>
-              ) : selectedBooking?.status === 'CONFIRMED' ? (
-                'Appointment Already Paid'
-              ) : (
-                <>
-                  {`Complete Payment (₹${selectedBooking ? parseFloat(selectedBooking.amount).toFixed(2) : '0.00'})`}
-                  <span className="arrow-gold">→</span>
-                </>
-              )}
-            </button>
-
-            {lastPaymentResult && (
-              <button
-                type="button"
-                onClick={() => handleProcessPayment(lastPaymentResult.idempotency_key)}
-                disabled={loading}
-                className="btn btn-ghost"
-                style={{ width: '100%', fontSize: '0.8125rem' }}
-                title="Test safety against double-charging by resending identical key"
-              >
-                <ShieldCheck size={14} />
-                Re-submit with same key (Test double-spend prevention)
-              </button>
+          {/* Pay Button */}
+          <button
+            type="button"
+            onClick={() => handleProcessPayment()}
+            disabled={loading || !selectedBookingId || selectedBooking?.status === 'CONFIRMED'}
+            className="btn btn-ink"
+            style={{ width: '100%', height: '38px', fontSize: '0.875rem' }}
+          >
+            {loading ? (
+              <>
+                <RefreshCw size={13} className="pulse" />
+                Processing...
+              </>
+            ) : selectedBooking?.status === 'CONFIRMED' ? (
+              'Appointment Already Paid'
+            ) : (
+              <>
+                Pay ₹{selectedBooking ? parseFloat(selectedBooking.amount).toFixed(2) : '0.00'}
+                <span className="arrow-gold">→</span>
+              </>
             )}
+          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', marginTop: '0.65rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+            <Lock size={11} />
+            <span>256-bit encrypted simulated processing</span>
           </div>
         </div>
 
-        {/* Right: Payment Receipt */}
-        <div>
-          <div className="card" style={{ padding: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1.25rem' }}>
+        {/* Right Column: Payment Receipt / Confirmation Card */}
+        <div className="card" style={{ padding: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+            <h2 style={{ fontSize: '1.05rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.45rem', margin: 0 }}>
+              <FileText size={16} />
               Payment Receipt
             </h2>
-
-            {!lastPaymentResult ? (
-              <div style={{
-                padding: '3rem 1.5rem',
-                textAlign: 'center',
-                backgroundColor: 'var(--bg-subtle)',
-                borderRadius: 'var(--radius-md)',
-                color: 'var(--text-muted)',
-                fontSize: '0.875rem',
-              }}>
-                <CreditCard size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
-                <div>No payment initiated yet.</div>
-                <div style={{ fontSize: '0.8125rem', marginTop: '0.25rem' }}>
-                  Select an appointment on the left and click "Complete Payment" to generate your receipt.
-                </div>
-              </div>
-            ) : (
-              <div style={{
-                padding: '1.5rem',
-                backgroundColor: lastPaymentResult.status === 'SUCCESS' ? 'var(--status-success-bg)' : 'var(--status-error-bg)',
-                border: `1px solid ${lastPaymentResult.status === 'SUCCESS' ? 'var(--status-success-border)' : 'var(--status-error-border)'}`,
-                borderRadius: 'var(--radius-md)',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    {lastPaymentResult.status === 'SUCCESS' ? (
-                      <CheckCircle2 size={20} color="var(--status-success-dot)" />
-                    ) : (
-                      <XCircle size={20} color="var(--status-error-dot)" />
-                    )}
-                    <span style={{ fontWeight: 700, fontSize: '1rem', color: lastPaymentResult.status === 'SUCCESS' ? 'var(--status-success-text)' : 'var(--status-error-text)' }}>
-                      {lastPaymentResult.status === 'SUCCESS' ? 'Payment Confirmed' : 'Payment Failed'}
-                    </span>
-                  </div>
-
-                  {lastPaymentResult.replayed && (
-                    <span className="pill-badge neutral" style={{ backgroundColor: '#FFFFFF', fontSize: '0.7rem' }}>
-                      Duplicate Safely Blocked
-                    </span>
-                  )}
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', fontSize: '0.875rem' }}>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'block' }}>Transaction Reference</span>
-                    <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{lastPaymentResult.transaction_id}</span>
-                  </div>
-
-                  <div>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'block' }}>Amount Paid</span>
-                    <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-main)' }}>
-                      ₹{parseFloat(lastPaymentResult.amount).toFixed(2)}
-                    </span>
-                  </div>
-
-                  <div style={{ gridColumn: 'span 2' }}>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'block' }}>Payment Token</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                      {lastPaymentResult.idempotency_key}
-                    </span>
-                  </div>
-
-                  {lastPaymentResult.failure_reason && (
-                    <div style={{ gridColumn: 'span 2', color: 'var(--status-error-text)', fontSize: '0.8125rem' }}>
-                      Reason: {lastPaymentResult.failure_reason}
-                    </div>
-                  )}
-                </div>
-
-                <div style={{
-                  marginTop: '1.25rem',
-                  paddingTop: '0.75rem',
-                  borderTop: '1px solid rgba(0,0,0,0.06)',
-                  fontSize: '0.8125rem',
-                  color: 'var(--text-secondary)',
-                }}>
-                  {lastPaymentResult.status === 'SUCCESS'
-                    ? '✓ Your appointment has been confirmed. You will receive an SMS and email reminder.'
-                    : '✕ The card was declined. Please try again or select another payment option.'}
-                </div>
-              </div>
+            {lastPaymentResult && (
+              <span className={`pill-badge ${lastPaymentResult.status === 'SUCCESS' ? 'success' : 'error'}`} style={{ fontSize: '0.68rem', padding: '0.1rem 0.5rem' }}>
+                {lastPaymentResult.status === 'SUCCESS' ? 'PAID' : 'DECLINED'}
+              </span>
             )}
           </div>
+
+          {!lastPaymentResult && (!selectedBooking || selectedBooking.status !== 'CONFIRMED') ? (
+            <div style={{
+              padding: '2.5rem 1.5rem',
+              textAlign: 'center',
+              backgroundColor: 'var(--bg-subtle)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-light)',
+            }}>
+              <CreditCard size={28} style={{ opacity: 0.35, margin: '0 auto 0.5rem' }} />
+              <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-main)' }}>
+                No Payment Generated
+              </div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', lineHeight: 1.5, maxWidth: '280px', margin: '0.25rem auto 0' }}>
+                Select a pending appointment on the left and complete payment to generate your official receipt.
+              </p>
+            </div>
+          ) : (
+            <div style={{
+              padding: '1.1rem',
+              backgroundColor: (lastPaymentResult?.status === 'SUCCESS' || selectedBooking?.status === 'CONFIRMED') ? 'var(--status-success-bg)' : 'var(--status-error-bg)',
+              border: `1px solid ${(lastPaymentResult?.status === 'SUCCESS' || selectedBooking?.status === 'CONFIRMED') ? 'var(--status-success-border)' : 'var(--status-error-border)'}`,
+              borderRadius: 'var(--radius-md)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.85rem' }}>
+                {(lastPaymentResult?.status === 'SUCCESS' || selectedBooking?.status === 'CONFIRMED') ? (
+                  <CheckCircle2 size={18} color="var(--status-success-dot)" />
+                ) : (
+                  <XCircle size={18} color="var(--status-error-dot)" />
+                )}
+                <span style={{ fontWeight: 700, fontSize: '0.9375rem', color: (lastPaymentResult?.status === 'SUCCESS' || selectedBooking?.status === 'CONFIRMED') ? 'var(--status-success-text)' : 'var(--status-error-text)' }}>
+                  {(lastPaymentResult?.status === 'SUCCESS' || selectedBooking?.status === 'CONFIRMED') ? 'Payment Verified & Confirmed' : 'Payment Failed'}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem', fontSize: '0.8125rem' }}>
+                <div>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', display: 'block' }}>Reference</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.75rem' }}>
+                    {lastPaymentResult?.transaction_id || `TXN_${selectedBooking?.id?.substring(0, 8).toUpperCase()}`}
+                  </span>
+                </div>
+
+                <div>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', display: 'block' }}>Amount</span>
+                  <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-main)' }}>
+                    ₹{parseFloat(lastPaymentResult?.amount || selectedBooking?.amount || 0).toFixed(2)}
+                  </span>
+                </div>
+
+                <div style={{ gridColumn: 'span 2' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', display: 'block' }}>Diagnostic Lab</span>
+                  <span style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>
+                    {selectedBooking?.centre_name || 'EVE Partner Lab'}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{
+                marginTop: '0.85rem',
+                paddingTop: '0.65rem',
+                borderTop: '1px solid rgba(0,0,0,0.06)',
+                fontSize: '0.75rem',
+                color: 'var(--text-secondary)',
+              }}>
+                {(lastPaymentResult?.status === 'SUCCESS' || selectedBooking?.status === 'CONFIRMED')
+                  ? 'Your appointment has been booked. Digital receipt sent to patient email.'
+                  : 'The card was declined. Please verify your details and retry.'}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

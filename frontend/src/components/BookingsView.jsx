@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, CreditCard, XCircle, RefreshCw, AlertCircle, Copy, Check } from 'lucide-react';
+import { Calendar, CreditCard, XCircle, RefreshCw, AlertCircle, Copy, Check, X, CheckCircle2, Lock } from 'lucide-react';
 
 export default function BookingsView({ onPayBooking, refreshTrigger }) {
   const { user, isAdmin } = useAuth();
@@ -11,6 +11,13 @@ export default function BookingsView({ onPayBooking, refreshTrigger }) {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [cancellingId, setCancellingId] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+
+  // Quick Pay Modal State
+  const [payingBooking, setPayingBooking] = useState(null);
+  const [paySimMode, setPaySimMode] = useState('FORCE_SUCCESS');
+  const [payLoading, setPayLoading] = useState(false);
+  const [payError, setPayError] = useState(null);
+  const [payReceipt, setPayReceipt] = useState(null);
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -44,6 +51,47 @@ export default function BookingsView({ onPayBooking, refreshTrigger }) {
     }
   };
 
+  const handleOpenPayModal = (booking) => {
+    setPayingBooking(booking);
+    setPaySimMode('FORCE_SUCCESS');
+    setPayError(null);
+    setPayReceipt(null);
+  };
+
+  const handleExecutePayment = async () => {
+    if (!payingBooking) return;
+    setPayLoading(true);
+    setPayError(null);
+
+    const idempotencyKey = 'pay_quick_' + payingBooking.id + '_' + Date.now();
+    const forceStatus = paySimMode === 'FORCE_FAILED' ? 'FAILED' : 'SUCCESS';
+
+    try {
+      const res = await api.createPayment({
+        booking_id: payingBooking.id,
+        idempotency_key: idempotencyKey,
+        force_status: forceStatus,
+      });
+
+      if (forceStatus === 'FAILED' || res.status === 'FAILED') {
+        setPayError('Payment Declined — The card was declined by issuing bank. Please switch simulation mode to Instant Success and try again.');
+        await fetchBookings();
+      } else {
+        setPayReceipt({
+          transaction_id: res.transaction_id,
+          amount: payingBooking.amount,
+          test_name: payingBooking.test_name,
+          centre_name: payingBooking.centre_name,
+        });
+        await fetchBookings();
+      }
+    } catch (err) {
+      setPayError(err.message || 'Payment execution failed.');
+    } finally {
+      setPayLoading(false);
+    }
+  };
+
   const copyToClipboard = (text, id) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
@@ -68,28 +116,24 @@ export default function BookingsView({ onPayBooking, refreshTrigger }) {
       case 'CONFIRMED':
         return (
           <span className="pill-badge success">
-            <span className="dot green"></span>
             Confirmed
           </span>
         );
       case 'PENDING':
         return (
           <span className="pill-badge warning">
-            <span className="dot amber"></span>
             Pending Payment
           </span>
         );
       case 'CANCELLED':
         return (
           <span className="pill-badge error">
-            <span className="dot rose"></span>
             Cancelled
           </span>
         );
       case 'FAILED':
         return (
           <span className="pill-badge error">
-            <span className="dot rose"></span>
             Payment Failed
           </span>
         );
@@ -163,7 +207,6 @@ export default function BookingsView({ onPayBooking, refreshTrigger }) {
                 onClick={() => setStatusFilter(opt.id)}
                 className={`impeccable-pill-btn ${isSelected ? 'active' : ''}`}
               >
-                {isSelected && <span className="dot green"></span>}
                 {opt.label}
               </button>
             );
@@ -277,7 +320,7 @@ export default function BookingsView({ onPayBooking, refreshTrigger }) {
                       {b.status === 'PENDING' && (
                         <>
                           <button
-                            onClick={() => onPayBooking && onPayBooking(b)}
+                            onClick={() => handleOpenPayModal(b)}
                             className="btn btn-ink btn-sm"
                           >
                             <CreditCard size={13} />
@@ -296,9 +339,21 @@ export default function BookingsView({ onPayBooking, refreshTrigger }) {
                       )}
 
                       {b.status === 'CONFIRMED' && (
-                        <span style={{ fontSize: '0.8125rem', color: 'var(--status-success-text)', fontWeight: 600 }}>
-                          Ready for Visit
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '0.78rem', color: 'var(--status-success-text)', fontWeight: 600 }}>
+                            Paid & Confirmed
+                          </span>
+                          <button
+                            onClick={() => handleCancel(b.id)}
+                            disabled={cancellingId === b.id}
+                            className="btn btn-ghost btn-sm"
+                            style={{ color: 'var(--status-error-text)', fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
+                            title="Cancel appointment"
+                          >
+                            <XCircle size={13} />
+                            Cancel
+                          </button>
+                        </div>
                       )}
 
                       {b.status === 'CANCELLED' && (
@@ -309,7 +364,7 @@ export default function BookingsView({ onPayBooking, refreshTrigger }) {
 
                       {b.status === 'FAILED' && (
                         <button
-                          onClick={() => onPayBooking && onPayBooking(b)}
+                          onClick={() => handleOpenPayModal(b)}
                           className="btn btn-ghost btn-sm"
                         >
                           Retry Payment
@@ -321,6 +376,220 @@ export default function BookingsView({ onPayBooking, refreshTrigger }) {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Quick Pay Modal for Pending Booking */}
+      {payingBooking && (
+        <div className="modal-backdrop" onClick={() => setPayingBooking(null)}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '440px' }}
+          >
+            {/* Header */}
+            <div style={{
+              padding: '1.25rem 1.5rem',
+              borderBottom: '1px solid var(--border-light)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>
+                  Pay for Appointment
+                </h3>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  Ref: #{payingBooking.id.substring(0, 8)}
+                </span>
+              </div>
+              <button
+                onClick={() => setPayingBooking(null)}
+                className="btn btn-ghost btn-sm"
+                style={{ padding: '0.25rem', border: 'none' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '1.5rem' }}>
+              {payReceipt ? (
+                /* Success Receipt */
+                <div>
+                  <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+                    <div style={{
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: 'var(--radius-full)',
+                      backgroundColor: '#ECFDF5',
+                      color: '#059669',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 0.5rem',
+                    }}>
+                      <CheckCircle2 size={24} />
+                    </div>
+                    <span className="pill-badge success" style={{ fontSize: '0.7rem' }}>PAID & CONFIRMED</span>
+                    <h4 style={{ fontSize: '1.2rem', fontWeight: 700, margin: '0.35rem 0 0.15rem' }}>
+                      Payment Successful
+                    </h4>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0 }}>
+                      Your booking has been marked as confirmed in database.
+                    </p>
+                  </div>
+
+                  <div style={{
+                    padding: '0.85rem',
+                    backgroundColor: 'var(--bg-subtle)',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-light)',
+                    marginBottom: '1.25rem',
+                    fontSize: '0.8125rem',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Test:</span>
+                      <span style={{ fontWeight: 600 }}>{payReceipt.test_name}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Clinic:</span>
+                      <span style={{ fontWeight: 600 }}>{payReceipt.centre_name}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Txn Reference:</span>
+                      <span style={{ fontWeight: 600, fontFamily: 'monospace' }}>{payReceipt.transaction_id}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.35rem', borderTop: '1px solid var(--border-light)' }}>
+                      <span style={{ fontWeight: 700 }}>Amount Paid:</span>
+                      <span style={{ fontWeight: 800, fontSize: '1rem' }}>₹{parseFloat(payReceipt.amount).toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setPayingBooking(null)}
+                    className="btn btn-ink"
+                    style={{ width: '100%' }}
+                  >
+                    Done
+                  </button>
+                </div>
+              ) : (
+                /* Payment Checkout Form */
+                <div>
+                  {payError && (
+                    <div style={{
+                      padding: '0.65rem 0.85rem',
+                      backgroundColor: 'var(--status-error-bg)',
+                      border: '1px solid var(--status-error-border)',
+                      borderRadius: 'var(--radius-md)',
+                      color: 'var(--status-error-text)',
+                      fontSize: '0.8125rem',
+                      marginBottom: '1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                    }}>
+                      <XCircle size={15} />
+                      <span>{payError}</span>
+                    </div>
+                  )}
+
+                  {/* Summary Card */}
+                  <div style={{
+                    padding: '0.85rem',
+                    backgroundColor: 'var(--bg-subtle)',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-light)',
+                    marginBottom: '1.25rem',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--text-main)' }}>
+                          {payingBooking.test_name}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                          {payingBooking.centre_name} · {payingBooking.centre_location}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Amount</div>
+                        <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                          ₹{parseFloat(payingBooking.amount).toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Simulation Toggle */}
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.35rem', fontWeight: 500 }}>
+                      Payment Simulation Mode
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => setPaySimMode('FORCE_SUCCESS')}
+                        style={{
+                          padding: '0.4rem',
+                          fontSize: '0.75rem',
+                          borderRadius: 'var(--radius-sm)',
+                          border: paySimMode === 'FORCE_SUCCESS' ? '1px solid var(--text-main)' : '1px solid var(--border-light)',
+                          backgroundColor: paySimMode === 'FORCE_SUCCESS' ? 'var(--text-main)' : '#FFFFFF',
+                          color: paySimMode === 'FORCE_SUCCESS' ? '#FFFFFF' : 'var(--text-secondary)',
+                          cursor: 'pointer',
+                          fontWeight: paySimMode === 'FORCE_SUCCESS' ? 600 : 400,
+                        }}
+                      >
+                        Instant Success
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaySimMode('FORCE_FAILED')}
+                        style={{
+                          padding: '0.4rem',
+                          fontSize: '0.75rem',
+                          borderRadius: 'var(--radius-sm)',
+                          border: paySimMode === 'FORCE_FAILED' ? '1px solid var(--status-error-border)' : '1px solid var(--border-light)',
+                          backgroundColor: paySimMode === 'FORCE_FAILED' ? 'var(--status-error-bg)' : '#FFFFFF',
+                          color: paySimMode === 'FORCE_FAILED' ? 'var(--status-error-text)' : 'var(--text-secondary)',
+                          cursor: 'pointer',
+                          fontWeight: paySimMode === 'FORCE_FAILED' ? 600 : 400,
+                        }}
+                      >
+                        Simulate Decline
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Pay button */}
+                  <button
+                    type="button"
+                    onClick={handleExecutePayment}
+                    disabled={payLoading}
+                    className="btn btn-ink"
+                    style={{ width: '100%', height: '40px', fontSize: '0.875rem' }}
+                  >
+                    {payLoading ? (
+                      <>
+                        <RefreshCw size={13} className="pulse" />
+                        Processing Payment...
+                      </>
+                    ) : (
+                      <>
+                        Pay ₹{parseFloat(payingBooking.amount).toFixed(2)} →
+                      </>
+                    )}
+                  </button>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', marginTop: '0.65rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                    <Lock size={10} />
+                    <span>256-bit encrypted simulated processing</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
