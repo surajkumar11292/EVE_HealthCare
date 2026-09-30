@@ -127,9 +127,16 @@ Client (Web / Mobile / cURL)
    - `redis`: Redis 7 on port `6379`
    - `celery_worker`: Background Celery task processor
 
-2. **Verify application health**:
+2. **Seed demo data (Centres, Tests, Bookings, Admin & Patient)**:
+   ```bash
+   docker compose exec web python scripts/seed.py
+   ```
+
+3. **Verify application health & explore endpoints**:
    - Interactive Swagger Docs: http://localhost:8000/docs
-   - System Health Check: http://localhost:8000/api/v1/health
+   - System Health Check: http://localhost:8000/health (or http://localhost:8000/api/v1/health)
+   - Pre-seeded Admin: `admin@evehealthcare.com` / `Admin@123456`
+   - Pre-seeded Patient: `patient@evehealthcare.com` / `Patient@123456`
 
 ---
 
@@ -162,7 +169,7 @@ Client (Web / Mobile / cURL)
 5. **Apply database migrations & seed initial data**:
    ```bash
    alembic upgrade head
-   python -m app.db.seed
+   python scripts/seed.py
    ```
 
 6. **Start the API server**:

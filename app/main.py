@@ -134,8 +134,36 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 
+from app.api.v1.payments import router as payments_router
+
+
+@app.get("/", tags=["System"])
+async def root():
+    return {
+        "message": "Welcome to EVE Healthcare Backend API",
+        "docs_url": "/docs",
+        "redoc_url": "/redoc",
+        "health_check": "/health",
+        "api_v1_prefix": settings.API_V1_PREFIX,
+    }
+
+
+@app.get("/health", tags=["System"])
+async def health_check():
+    return {
+        "status": "healthy",
+        "app": settings.APP_NAME,
+        "environment": settings.APP_ENV,
+        "version": "1.0.0",
+    }
+
+
 # Include API V1 Router
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+
+# Also mount payments_router directly at root for direct assignment spec compatibility
+# (POST /payments/ and POST /payments/webhook/)
+app.include_router(payments_router)
 
 # Enable Pagination
 add_pagination(app)
