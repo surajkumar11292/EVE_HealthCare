@@ -4,17 +4,38 @@ import Navbar from './components/Navbar';
 import PersonaBanner from './components/PersonaBanner';
 import AuthModal from './components/AuthModal';
 import CatalogView from './components/CatalogView';
+import BookingsView from './components/BookingsView';
+import BookingModal from './components/BookingModal';
 
 function MainContent() {
   const [activeTab, setActiveTab] = useState('catalog');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedBookingContext, setSelectedBookingContext] = useState(null);
+  const [selectedPayBooking, setSelectedPayBooking] = useState(null);
+  const [selectedWebhookBooking, setSelectedWebhookBooking] = useState(null);
+  const [refreshBookingsTrigger, setRefreshBookingsTrigger] = useState(0);
+
   const { user, isAuthenticated, isAdmin } = useAuth();
 
   const handleBookTestClick = (centre, centreTest) => {
     setSelectedBookingContext({ centre, centreTest });
-    // In Phase 4 this opens the booking modal; for now switch tab or alert
+    setIsBookingModalOpen(true);
+  };
+
+  const handleBookingCreated = (newBooking) => {
+    setRefreshBookingsTrigger(Date.now());
     setActiveTab('bookings');
+  };
+
+  const handlePayBooking = (booking) => {
+    setSelectedPayBooking(booking);
+    setActiveTab('payments');
+  };
+
+  const handleOpenWebhook = (booking) => {
+    setSelectedWebhookBooking(booking);
+    setActiveTab('webhooks');
   };
 
   return (
@@ -30,11 +51,18 @@ function MainContent() {
           <CatalogView onBookTest={handleBookTestClick} />
         )}
 
-        {activeTab !== 'catalog' && (
+        {activeTab === 'bookings' && (
+          <BookingsView
+            onPayBooking={handlePayBooking}
+            onOpenWebhook={handleOpenWebhook}
+            refreshTrigger={refreshBookingsTrigger}
+          />
+        )}
+
+        {activeTab !== 'catalog' && activeTab !== 'bookings' && (
           <div className="card" style={{ padding: '2.5rem', textAlign: 'center', backgroundColor: '#FFFFFF' }}>
             <div className="kicker" style={{ marginBottom: '0.5rem' }}>// CURRENT VIEW: {activeTab.toUpperCase()}</div>
             <h2 style={{ fontSize: '1.35rem', marginBottom: '0.75rem' }}>
-              {activeTab === 'bookings' && 'Diagnostic Bookings Ledger (Phase 4)'}
               {activeTab === 'payments' && 'Simulated Payment Gateway & Idempotency (Phase 5)'}
               {activeTab === 'webhooks' && 'Payment Webhook Testing Sandbox & Concurrency Lab (Phase 6)'}
               {activeTab === 'telemetry' && 'System Architecture & Telemetry (Phase 7)'}
@@ -46,18 +74,36 @@ function MainContent() {
               fontSize: '0.875rem',
               lineHeight: 1.6,
             }}>
-              {selectedBookingContext ? (
-                <>Selected test: <strong>{selectedBookingContext.centreTest?.test?.name}</strong> at <strong>{selectedBookingContext.centre?.name}</strong> (₹{selectedBookingContext.centreTest?.price}). Ready to connect with Phase 4 booking scheduler!</>
+              {selectedPayBooking && activeTab === 'payments' ? (
+                <>Selected Booking for payment: <strong>{selectedPayBooking.test_name}</strong> (Amount: ₹{selectedPayBooking.amount}). Ready for Phase 5!</>
+              ) : selectedWebhookBooking && activeTab === 'webhooks' ? (
+                <>Selected Booking for webhook verification: <strong>{selectedWebhookBooking.id}</strong>. Ready for Phase 6!</>
               ) : (
-                'Select "Catalog Matrix" in the header to browse diagnostic centres and tests with real-time price snapshotting.'
+                'Navigate back to Bookings Ledger or Catalog to schedule appointments and test state machine transitions.'
               )}
             </p>
-            <button onClick={() => setActiveTab('catalog')} className="btn btn-ink btn-sm">
-              Back to Catalog Matrix
-            </button>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
+              <button onClick={() => setActiveTab('bookings')} className="btn btn-ghost btn-sm">
+                View Bookings Ledger
+              </button>
+              <button onClick={() => setActiveTab('catalog')} className="btn btn-ink btn-sm">
+                Back to Catalog Matrix
+              </button>
+            </div>
           </div>
         )}
       </main>
+
+      {/* Appointment Scheduling Modal */}
+      {selectedBookingContext && (
+        <BookingModal
+          isOpen={isBookingModalOpen}
+          onClose={() => setIsBookingModalOpen(false)}
+          centre={selectedBookingContext.centre}
+          centreTest={selectedBookingContext.centreTest}
+          onBookingCreated={handleBookingCreated}
+        />
+      )}
 
       {/* Manual Login / Signup Modal */}
       <AuthModal
