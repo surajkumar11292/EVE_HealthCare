@@ -5,6 +5,7 @@ celery_app = Celery(
     "eve_healthcare",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
+    include=["app.tasks.webhook_tasks"],
 )
 
 celery_app.conf.update(
