@@ -8,6 +8,7 @@ import BookingsView from './components/BookingsView';
 import BookingModal from './components/BookingModal';
 import PaymentsView from './components/PaymentsView';
 import WebhookSandbox from './components/WebhookSandbox';
+import TelemetryView from './components/TelemetryView';
 
 function MainContent() {
   const [activeTab, setActiveTab] = useState('catalog');
@@ -76,38 +77,8 @@ function MainContent() {
           />
         )}
 
-        {activeTab !== 'catalog' && activeTab !== 'bookings' && activeTab !== 'payments' && activeTab !== 'webhooks' && (
-          <div className="card" style={{ padding: '2.5rem', textAlign: 'center', backgroundColor: '#FFFFFF' }}>
-            <div className="kicker" style={{ marginBottom: '0.5rem' }}>// CURRENT VIEW: {activeTab.toUpperCase()}</div>
-            <h2 style={{ fontSize: '1.35rem', marginBottom: '0.75rem' }}>
-              {activeTab === 'payments' && 'Simulated Payment Gateway & Idempotency (Phase 5)'}
-              {activeTab === 'webhooks' && 'Payment Webhook Testing Sandbox & Concurrency Lab (Phase 6)'}
-              {activeTab === 'telemetry' && 'System Architecture & Telemetry (Phase 7)'}
-            </h2>
-            <p style={{
-              color: 'var(--text-secondary)',
-              maxWidth: '650px',
-              margin: '0 auto 1.5rem',
-              fontSize: '0.875rem',
-              lineHeight: 1.6,
-            }}>
-              {selectedPayBooking && activeTab === 'payments' ? (
-                <>Selected Booking for payment: <strong>{selectedPayBooking.test_name}</strong> (Amount: ₹{selectedPayBooking.amount}). Ready for Phase 5!</>
-              ) : selectedWebhookBooking && activeTab === 'webhooks' ? (
-                <>Selected Booking for webhook verification: <strong>{selectedWebhookBooking.id}</strong>. Ready for Phase 6!</>
-              ) : (
-                'Navigate back to Bookings Ledger or Catalog to schedule appointments and test state machine transitions.'
-              )}
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
-              <button onClick={() => setActiveTab('bookings')} className="btn btn-ghost btn-sm">
-                View Bookings Ledger
-              </button>
-              <button onClick={() => setActiveTab('catalog')} className="btn btn-ink btn-sm">
-                Back to Catalog Matrix
-              </button>
-            </div>
-          </div>
+        {activeTab === 'telemetry' && (
+          <TelemetryView />
         )}
       </main>
 
